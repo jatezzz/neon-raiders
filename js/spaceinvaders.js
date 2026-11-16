@@ -53,6 +53,8 @@ function Game() {
 
     //  All state is in the variables below.
     this.lives = 3;
+    //  Active visual theme (js/theme.js); built-in neon until a theme loads.
+    this.theme = window.NeonTheme ? window.NeonTheme.sanitize(null) : null;
     this.width = 0;
     this.height = 0;
     this.gameBounds = {left: 0, top: 0, right: 0, bottom: 0};
@@ -267,8 +269,14 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle"; 
     ctx.textAlign="center"; 
-    ctx.fillText("Neon Raiders", game.width / 2, game.height/2 - 40); 
+    var texts = (game.theme && game.theme.texts) || { title: "Neon Raiders", subtitle: "" };
+    ctx.fillText(texts.title, game.width / 2, game.height/2 - 40); 
     ctx.font="16px Arial";
+    if (texts.subtitle) {
+        ctx.fillStyle = (game.theme && game.theme.palette.enemyA) || '#ffffff';
+        ctx.fillText(texts.subtitle, game.width / 2, game.height/2 + 30);
+        ctx.fillStyle = '#ffffff';
+    }
 
     ctx.fillText("Press 'Space' or touch to start.", game.width / 2, game.height/2); 
 };
@@ -339,6 +347,7 @@ PlayState.prototype.enter = function(game) {
 
     //  Create the ship.
     this.ship = new Ship(game.width / 2, game.gameBounds.bottom);
+    this.explosions = [];
 
     //  Setup initial state.
     this.invaderCurrentVelocity =  10;
@@ -469,6 +478,12 @@ PlayState.prototype.update = function(game, dt) {
         game.lives = 0;
     }
     
+    //  Age explosions and drop finished ones.
+    for(var e=0; e<this.explosions.length; e++) {
+        this.explosions[e].age += dt;
+        if(this.explosions[e].age > PlayState.EXPLOSION_TIME) { this.explosions.splice(e--, 1); }
+    }
+
     //  Check for rocket/invader collisions.
     for(i=0; i<this.invaders.length; i++) {
         var invader = this.invaders[i];
@@ -489,6 +504,7 @@ PlayState.prototype.update = function(game, dt) {
             }
         }
         if(bang) {
+            this.explosions.push({ x: invader.x, y: invader.y, age: 0 });
             this.invaders.splice(i--, 1);
             game.sounds.playSound('bang');
         }
@@ -525,6 +541,7 @@ PlayState.prototype.update = function(game, dt) {
                 bomb.y >= (this.ship.y - this.ship.height/2) && bomb.y <= (this.ship.y + this.ship.height/2)) {
             this.bombs.splice(i--, 1);
             game.lives--;
+            this.explosions.push({ x: this.ship.x, y: this.ship.y, age: 0 });
             game.sounds.playSound('explosion');
         }
                 
@@ -558,34 +575,46 @@ PlayState.prototype.update = function(game, dt) {
     }
 };
 
+PlayState.EXPLOSION_TIME = 0.35;   // seconds
+
 PlayState.prototype.draw = function(game, dt, ctx) {
 
     //  Clear the background.
     ctx.clearRect(0, 0, game.width, game.height);
     
-    //  Draw ship.
-    ctx.fillStyle = '#999999';
-    ctx.fillRect(this.ship.x - (this.ship.width / 2), this.ship.y - (this.ship.height / 2), this.ship.width, this.ship.height);
-
-    //  Draw invaders.
-    ctx.fillStyle = '#006600';
-    for(var i=0; i<this.invaders.length; i++) {
-        var invader = this.invaders[i];
-        ctx.fillRect(invader.x - invader.width/2, invader.y - invader.height/2, invader.width, invader.height);
-    }
-
-    //  Draw bombs.
-    ctx.fillStyle = '#ff5555';
-    for(var i=0; i<this.bombs.length; i++) {
-        var bomb = this.bombs[i];
-        ctx.fillRect(bomb.x - 2, bomb.y - 2, 4, 4);
-    }
-
-    //  Draw rockets.
-    ctx.fillStyle = '#ff0000';
-    for(var i=0; i<this.rockets.length; i++) {
-        var rocket = this.rockets[i];
-        ctx.fillRect(rocket.x, rocket.y - 2, 1, 4);
+    //  Draw everything through the active theme (fixed hit boxes, themed look).
+    var theme = game.theme;
+    var now = (window.performance ? performance.now() : Date.now()) / 1000;
+    if (theme && window.NeonTheme) {
+        NeonTheme.draw(ctx, theme, 'ship', this.ship.x, this.ship.y, this.ship.width, this.ship.height, now);
+        for(var i=0; i<this.invaders.length; i++) {
+            var invader = this.invaders[i];
+            NeonTheme.draw(ctx, theme, NeonTheme.enemyKind(invader.rank), invader.x, invader.y, invader.width, invader.height, now);
+        }
+        for(var i=0; i<this.bombs.length; i++) {
+            NeonTheme.draw(ctx, theme, 'bomb', this.bombs[i].x, this.bombs[i].y, 4, 8, now);
+        }
+        ctx.fillStyle = theme.palette.rocket;
+        for(var i=0; i<this.rockets.length; i++) {
+            ctx.fillRect(this.rockets[i].x, this.rockets[i].y - 3, 2, 6);
+        }
+        for(var i=0; i<this.explosions.length; i++) {
+            var ex = this.explosions[i];
+            NeonTheme.drawExplosion(ctx, theme, ex.x, ex.y, ex.age, PlayState.EXPLOSION_TIME);
+        }
+    } else {
+        //  Original look (no theme support loaded).
+        ctx.fillStyle = '#999999';
+        ctx.fillRect(this.ship.x - (this.ship.width / 2), this.ship.y - (this.ship.height / 2), this.ship.width, this.ship.height);
+        ctx.fillStyle = '#006600';
+        for(var i=0; i<this.invaders.length; i++) {
+            var inv = this.invaders[i];
+            ctx.fillRect(inv.x - inv.width/2, inv.y - inv.height/2, inv.width, inv.height);
+        }
+        ctx.fillStyle = '#ff5555';
+        for(var i=0; i<this.bombs.length; i++) { ctx.fillRect(this.bombs[i].x - 2, this.bombs[i].y - 2, 4, 4); }
+        ctx.fillStyle = '#ff0000';
+        for(var i=0; i<this.rockets.length; i++) { ctx.fillRect(this.rockets[i].x, this.rockets[i].y - 2, 1, 4); }
     }
 
     //  Draw info.

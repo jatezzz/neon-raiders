@@ -1,0 +1,41 @@
+{
+  "id": "demo-espacio",
+  "name": "Space (demo)",
+  "texts": {
+    "title": "Neon Raiders",
+    "subtitle": "Theme: asteroid storm"
+  },
+  "palette": {
+    "ship": "#e6e6f0",
+    "enemyA": "#c08850",
+    "enemyB": "#a07050",
+    "enemyC": "#806050",
+    "bomb": "#ff8c28",
+    "rocket": "#00f0ff",
+    "hud": "#ffffff",
+    "explosion": "#ffc83c"
+  },
+  "sprites": {
+    "ship": "ship.png",
+    "enemyA": [
+      "rock-a1.png",
+      "rock-a2.png"
+    ],
+    "enemyB": [
+      "rock-b1.png",
+      "rock-b2.png"
+    ],
+    "enemyC": [
+      "rock-c1.png",
+      "rock-c2.png"
+    ],
+    "bomb": "bomb.png",
+    "explosion": [
+      "explosion1.png",
+      "explosion2.png",
+      "explosion3.png",
+      "explosion4.png"
+    ]
+  },
+  "credits": "Demo art drawn for Neon Raiders (MIT)."
+}

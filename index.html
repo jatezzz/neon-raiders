@@ -121,6 +121,7 @@
         </div>
 
         <script src="js/starfield.js"></script>
+        <script src="js/theme.js"></script>
         <script src="js/spaceinvaders.js"></script>
         <script src="js/touch-controls.js"></script>
         <script>
@@ -161,6 +162,16 @@
                 var keycode = e.which || window.event.keycode;
                 game.keyUp(keycode);
             });
+
+            //  Browsers keep audio suspended until the first user gesture (iOS stays silent otherwise).
+            function unlockAudio() {
+                var ac = game.sounds && game.sounds.audioContext;
+                if (ac && ac.state === 'suspended') { ac.resume(); }
+            }
+            ['pointerdown', 'keydown', 'touchend'].forEach(function (ev) { window.addEventListener(ev, unlockAudio, { passive: true }); });
+
+            //  Load the active theme (themes/current.json); the game starts right away with the built-in look.
+            NeonTheme.load().then(function (theme) { game.theme = theme; });
 
             //  Touch controls and responsive scaling (js/touch-controls.js).
             var touchControls = new TouchControls(game, canvas);

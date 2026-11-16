@@ -1,0 +1,9 @@
+{
+  "id": "default",
+  "name": "Neon",
+  "texts": { "title": "Neon Raiders", "subtitle": "" },
+  "palette": { "ship": "#00f0ff", "enemyA": "#ff00c8", "enemyB": "#a040ff", "enemyC": "#00ff9c",
+               "bomb": "#ffdc3c", "rocket": "#ffffff", "hud": "#ffffff", "explosion": "#ff8c3c" },
+  "sprites": {},
+  "credits": "Built-in neon shapes."
+}
