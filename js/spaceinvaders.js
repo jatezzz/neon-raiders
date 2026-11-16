@@ -8,7 +8,7 @@
 /*  
     Game Class
 
-    The Game class represents a Space Invaders game.
+    The Game class represents a Neon Raiders game.
     Create an instance of it, change any of the default values
     in the settings, and call 'start' to run the game.
 
@@ -267,7 +267,7 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle"; 
     ctx.textAlign="center"; 
-    ctx.fillText("Space Invaders", game.width / 2, game.height/2 - 40); 
+    ctx.fillText("Neon Raiders", game.width / 2, game.height/2 - 40); 
     ctx.font="16px Arial";
 
     ctx.fillText("Press 'Space' or touch to start.", game.width / 2, game.height/2); 
@@ -545,6 +545,8 @@ PlayState.prototype.update = function(game, dt) {
 
     //  Check for failure
     if(game.lives <= 0) {
+        // Optional arcade hook: portals such as OpenArcade inject window.PortalSDK; standalone it does nothing.
+        if (window.PortalSDK && window.PortalSDK.gameOver) { window.PortalSDK.gameOver(game.score, { level: game.level }); }
         game.moveToState(new GameOverState());
     }
 

@@ -1,20 +1,27 @@
 name: Publish to GitHub Pages
 on:
-  push:	
-    branches:	
-      - master
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@master
-
-    - name: Build and Deploy
-      uses: JamesIves/github-pages-deploy-action@releases/v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        BASE_BRANCH: master       # Deploy from master...
-        BRANCH: gh-pages          # ...to GitHub pages...
-        BUILD_SCRIPT: make build  # ...run the build action...
-        FOLDER: artifacts/dist    # ...copy the distribution folder.
+      - uses: actions/checkout@v4
+      - run: make build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: artifacts/dist
+      - id: deployment
+        uses: actions/deploy-pages@v4
