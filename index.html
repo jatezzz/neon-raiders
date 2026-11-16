@@ -2,6 +2,9 @@
 <html>
     <head>
 
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+        <meta name="theme-color" content="#000000">
         <title>Neon Raiders</title>
         <link rel="stylesheet" type="text/css" href="css/core.css">
         <link rel="stylesheet" type="text/css" href="css/typeography.css">
@@ -25,18 +28,74 @@
                 top: 0px;
             }
             #gamecontainer {
-                width: 800px;
-                margin-left: auto;
-                margin-right: auto;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                padding-top: env(safe-area-inset-top);
             }
-            #gamecanvas { 
+            #gameCanvas {
+                display: block;
                 width: 800px;
                 height: 600px;
+                touch-action: none;
             }
             #info {
-                width: 800px;
+                max-width: 800px;
                 margin-left: auto;
                 margin-right: auto;
+                padding: 0 12px;
+                box-sizing: border-box;
+            }
+            .touch-only { display: none; }
+
+            /* Touch screens: on-screen pad, no page scrolling, zooming or text selection. */
+            body.touch {
+                touch-action: none;
+                -webkit-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            body.touch .touch-only { display: block; }
+            body.touch .desktop-only { display: none; }
+            body.touch #info { font-size: 12px; }
+            #touchpad {
+                display: none;
+                position: fixed;
+                left: 0; right: 0; bottom: 0;
+                padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+                box-sizing: border-box;
+            }
+            body.touch #touchpad { display: flex; justify-content: space-between; align-items: center; }
+            #touchpad .move { display: flex; gap: 14px; }
+            #touchpad button {
+                width: 76px; height: 76px;
+                border-radius: 50%;
+                border: 3px solid #00f0ff;
+                background: rgba(0, 240, 255, 0.10);
+                color: #00f0ff;
+                font: bold 28px sans-serif;
+                touch-action: none;
+                box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+            }
+            #touchpad button.fire {
+                width: 96px; height: 96px;
+                border-color: #ff00c8;
+                color: #ff00c8;
+                background: rgba(255, 0, 200, 0.12);
+                font-size: 20px;
+                box-shadow: 0 0 14px rgba(255, 0, 200, 0.6);
+            }
+            #touchpad button.active { transform: scale(0.92); filter: brightness(1.6); }
+            body.touch #info { margin-bottom: 120px; }
+            #touchpad { pointer-events: none; }
+            #touchpad button { pointer-events: auto; }
+            /* Phone in landscape: game uses the full height, buttons on the sides. */
+            @media (orientation: landscape) {
+                body.touch #info { display: none; }
+                body.touch #touchpad { top: 0; align-items: flex-end; }
+                body.touch #touchpad .move { flex-direction: column; }
             }
         </style>
     </head>
@@ -46,15 +105,24 @@
         <canvas id="gameCanvas"></canvas>
         </div>
         <div id="info">
-            <p>Move with arrow keys or swipe, fire with the space bar or touch. The raiders get faster and drop
-                more bombs as you complete each level!</p>
+            <p class="desktop-only">Move with the arrow keys, fire with the space bar, pause with P. The raiders get faster
+                and drop more bombs as you complete each level!</p>
+            <p class="touch-only">Drag on the game to move, tap to fire, or use the buttons.</p>
             <p><a id="muteLink" href="#" onclick="toggleMute()">mute</a> | 
                 <a href="https://github.com/jatezzz/neon-raiders">neon-raiders on github</a> | 
                 based on <a href="https://github.com/dwmkerr/spaceinvaders">dwmkerr/spaceinvaders</a> | <a href="https://games.johnandrestrujillo.com/play/neon-raiders">play on OpenArcade</a></p>
         </div>
+        <div id="touchpad" aria-label="Touch controls">
+            <div class="move">
+                <button type="button" data-key="LEFT" aria-label="Move left">&#9664;</button>
+                <button type="button" data-key="RIGHT" aria-label="Move right">&#9654;</button>
+            </div>
+            <button type="button" class="fire" data-key="SPACE" aria-label="Fire">FIRE</button>
+        </div>
 
         <script src="js/starfield.js"></script>
         <script src="js/spaceinvaders.js"></script>
+        <script src="js/touch-controls.js"></script>
         <script>
 
             //  Create the starfield.
@@ -65,8 +133,10 @@
 
             //  Setup the canvas.
             var canvas = document.getElementById("gameCanvas");
-            canvas.width = 800;
-            canvas.height = 600;
+            //  Touch screens get a tighter canvas around the 400x300 play area, so the game is bigger on phones.
+            var compact = TouchControls.isTouchDevice();
+            canvas.width = compact ? 440 : 800;
+            canvas.height = compact ? 360 : 600;
 
             //  Create the game.
             var game = new Game();
@@ -92,17 +162,8 @@
                 game.keyUp(keycode);
             });
 
-            window.addEventListener("touchstart", function (e) {
-                game.touchstart(e);
-            }, false);
- 
-            window.addEventListener('touchend', function(e){
-                game.touchend(e);
-            }, false);
-
-            window.addEventListener('touchmove', function(e){
-                game.touchmove(e);
-            }, false);
+            //  Touch controls and responsive scaling (js/touch-controls.js).
+            var touchControls = new TouchControls(game, canvas);
 
             function toggleMute() {
                 game.mute();
