@@ -26,6 +26,12 @@ var KEY_LEFT = 37;
 var KEY_RIGHT = 39;
 var KEY_SPACE = 32;
 
+//  Text in the player's language (js/i18n.js); the English fallback keeps this file usable alone.
+function T(key, vars, fallback) {
+    if (window.NeonI18n) { return window.NeonI18n.t(key, vars); }
+    return fallback;
+}
+
 //  Creates an instance of the Game class.
 function Game() {
 
@@ -48,6 +54,12 @@ function Game() {
         shipSpeed: 120,
         levelDifficultyMultiplier: 0.2,
         pointsPerInvader: 5,
+        pointsPerBonus: 100,
+        bonusSpeed: 60,
+        bonusFirstDelay: [6, 12],
+        bonusNextDelay: [12, 20],
+        bonusBannerSeconds: 2.5,
+        introSeconds: 2,
         limitLevelIncrease: 25
     };
 
@@ -61,6 +73,11 @@ function Game() {
     this.intervalId = 0;
     this.score = 0;
     this.level = 1;
+
+    //  Random numbers for a run. The daily challenge replaces this with a generator seeded from
+    //  the date, so everyone gets the same waves on the same day.
+    this.rng = Math.random;
+    this.runStats = { kills: 0, bonus: 0 };
 
     //  The state stack.
     this.stateStack = [];
@@ -112,6 +129,17 @@ Game.prototype.moveToState = function(state) {
    this.stateStack.pop();
    this.stateStack.push(state);
  };
+
+//  Reset everything for a new run.
+Game.prototype.newRun = function() {
+    this.level = 1;
+    this.score = 0;
+    this.lives = 3;
+    this.runStats = { kills: 0, bonus: 0 };
+    this.rng = window.NeonDaily ? window.NeonDaily.rng('run') : Math.random;
+    if (window.NeonDaily) { window.NeonDaily.onRunStart(); }
+    this.moveToState(new LevelIntroState(this.level));
+};
 
 //  Start the Game.
 Game.prototype.start = function() {
@@ -270,30 +298,56 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     ctx.textBaseline="middle"; 
     ctx.textAlign="center"; 
     var texts = (game.theme && game.theme.texts) || { title: "Neon Raiders", subtitle: "" };
-    ctx.fillText(texts.title, game.width / 2, game.height/2 - 40); 
+    var cx = game.width / 2, cy = game.height / 2;
+    ctx.fillText(texts.title, cx, cy - 70);
+    var daily = window.NeonDaily, i18n = window.NeonI18n;
+    if (daily && i18n) {
+        //  Today's challenge, the same for everyone.
+        ctx.font="16px Arial";
+        ctx.fillStyle = (game.theme && game.theme.palette.ship) || '#00f0ff';
+        ctx.fillText(i18n.t('title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
+    }
     ctx.font="16px Arial";
     if (texts.subtitle) {
         ctx.fillStyle = (game.theme && game.theme.palette.enemyA) || '#ffffff';
-        ctx.fillText(texts.subtitle, game.width / 2, game.height/2 + 30);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillText(texts.subtitle, cx, cy - 12);
     }
-
-    ctx.fillText("Press 'Space' or touch to start.", game.width / 2, game.height/2); 
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(T('title.start', null, "Press 'Space' or touch to start."), cx, cy + 20);
+    if (daily && i18n) {
+        var progress = daily.todayProgress(), streak = daily.currentStreak();
+        ctx.font="13px Arial";
+        ctx.fillStyle = '#b0b0c0';
+        if (progress.attempts > 0) {
+            ctx.fillText(i18n.t('title.status', { best: i18n.number(progress.best), streak: streak }), cx, cy + 50);
+        } else if (streak > 0) {
+            ctx.fillText(i18n.t('title.streak', { streak: streak }), cx, cy + 50);
+        }
+        if (!daily.onPortal) {
+            ctx.fillText(i18n.t('title.more', { host: daily.CONFIG.portalHost }), cx, cy + 72);
+        }
+    }
 };
 
 WelcomeState.prototype.keyDown = function(game, keyCode) {
     if(keyCode == KEY_SPACE) {
         //  Space starts the game.
-        game.level = 1;
-        game.score = 0;
-        game.lives = 3;
-        game.moveToState(new LevelIntroState(game.level));
+        game.newRun();
     }
 };
 
 function GameOverState() {
 
 }
+
+//  Record the run and open the game-over screen (js/daily.js) with the share button.
+GameOverState.prototype.enter = function(game) {
+    this.overlay = false;
+    if (window.NeonDaily) {
+        window.NeonDaily.onGameOver(game);
+        this.overlay = !!document.getElementById('gameover');
+    }
+};
 
 GameOverState.prototype.update = function(game, dt) {
 
@@ -303,6 +357,7 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
 
     //  Clear the background.
     ctx.clearRect(0, 0, game.width, game.height);
+    if (this.overlay) { return; }      // the HTML game-over screen shows the result
 
     ctx.font="30px Arial";
     ctx.fillStyle = '#ffffff';
@@ -317,11 +372,9 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
 
 GameOverState.prototype.keyDown = function(game, keyCode) {
     if(keyCode == KEY_SPACE) {
-        //  Space restarts the game.
-        game.lives = 3;
-        game.score = 0;
-        game.level = 1;
-        game.moveToState(new LevelIntroState(1));
+        //  Space restarts the game. Ignore it for a moment: the player may still be firing.
+        if (window.NeonDaily && window.NeonDaily.locked()) { return; }
+        game.newRun();
     }
 };
 
@@ -341,6 +394,9 @@ function PlayState(config, level) {
     this.invaders = [];
     this.rockets = [];
     this.bombs = [];
+    this.bonus = null;          // the bonus ship crossing the top, if any
+    this.bonusTimer = 0;        // seconds until the next bonus ship
+    this.banner = null;         // short message after a bonus ship is hit
 }
 
 PlayState.prototype.enter = function(game) {
@@ -368,8 +424,12 @@ PlayState.prototype.enter = function(game) {
     var ranks = this.config.invaderRanks + 0.1 * limitLevel;
     var files = this.config.invaderFiles + 0.2 * limitLevel;
     var invaders = [];
+    //  The daily challenge decides which slots of the grid hold an enemy in this wave.
+    var formation = window.NeonDaily ? window.NeonDaily.formation(this.level, Math.ceil(ranks), Math.ceil(files)) : null;
+    this.formationName = formation ? formation.name : 'block';
     for(var rank = 0; rank < ranks; rank++){
         for(var file = 0; file < files; file++) {
+            if (formation && !formation.keep(rank, file)) { continue; }
             invaders.push(new Invader(
                 (game.width / 2) + ((files/2 - file) * 200 / files),
                 (game.gameBounds.top + rank * 20),
@@ -380,6 +440,16 @@ PlayState.prototype.enter = function(game) {
     this.invaderCurrentVelocity = this.invaderInitialVelocity;
     this.invaderVelocity = {x: -this.invaderInitialVelocity, y:0};
     this.invaderNextVelocity = null;
+
+    //  Bonus ship schedule for this wave, the same for everyone on the same day.
+    this.bonusRng = window.NeonDaily ? window.NeonDaily.rng('bonus' + this.level) : Math.random;
+    this.bonus = null;
+    this.banner = null;
+    this.bonusTimer = this.between(this.config.bonusFirstDelay);
+};
+
+PlayState.prototype.between = function(range) {
+    return range[0] + this.bonusRng() * (range[1] - range[0]);
 };
 
 PlayState.prototype.update = function(game, dt) {
@@ -425,6 +495,39 @@ PlayState.prototype.update = function(game, dt) {
         //  If the rocket has gone off the screen remove it.
         if(rocket.y < 0) {
             this.rockets.splice(i--, 1);
+        }
+    }
+
+    //  The bonus ship crosses the top of the screen from time to time.
+    if (this.bonus) {
+        this.bonus.x += this.bonus.velocity * dt;
+        if (this.bonus.x < game.gameBounds.left - 30 || this.bonus.x > game.gameBounds.right + 30) {
+            this.bonus = null;
+            this.bonusTimer = this.between(this.config.bonusNextDelay);
+        }
+    } else {
+        this.bonusTimer -= dt;
+        if (this.bonusTimer <= 0) {
+            var fromLeft = this.bonusRng() < 0.5;
+            this.bonus = new BonusShip(fromLeft ? game.gameBounds.left - 20 : game.gameBounds.right + 20,
+                game.gameBounds.top - 16, (fromLeft ? 1 : -1) * this.config.bonusSpeed);
+        }
+    }
+    if (this.banner) {
+        this.banner.age += dt;
+        if (this.banner.age > this.config.bonusBannerSeconds) { this.banner = null; }
+    }
+
+    //  Check for rocket/bonus ship collisions.
+    if (this.bonus) {
+        for(i=0; i<this.rockets.length; i++) {
+            var shot = this.rockets[i];
+            if(shot.x >= (this.bonus.x - this.bonus.width/2) && shot.x <= (this.bonus.x + this.bonus.width/2) &&
+                shot.y >= (this.bonus.y - this.bonus.height/2) && shot.y <= (this.bonus.y + this.bonus.height/2)) {
+                this.rockets.splice(i, 1);
+                this.hitBonus(game);
+                break;
+            }
         }
     }
 
@@ -500,6 +603,7 @@ PlayState.prototype.update = function(game, dt) {
                 this.rockets.splice(j--, 1);
                 bang = true;
                 game.score += this.config.pointsPerInvader;
+                game.runStats.kills += 1;
                 break;
             }
         }
@@ -523,14 +627,13 @@ PlayState.prototype.update = function(game, dt) {
     }
 
     //  Give each front rank invader a chance to drop a bomb.
-    for(var i=0; i<this.config.invaderFiles; i++) {
-        var invader = frontRankInvaders[i];
-        if(!invader) continue;
+    for(var fileKey in frontRankInvaders) {
+        var invader = frontRankInvaders[fileKey];
         var chance = this.bombRate * dt;
-        if(chance > Math.random()) {
+        if(chance > game.rng()) {
             //  Fire!
             this.bombs.push(new Bomb(invader.x, invader.y + invader.height / 2, 
-                this.bombMinVelocity + Math.random()*(this.bombMaxVelocity - this.bombMinVelocity)));
+                this.bombMinVelocity + game.rng()*(this.bombMaxVelocity - this.bombMinVelocity)));
         }
     }
 
@@ -577,6 +680,23 @@ PlayState.prototype.update = function(game, dt) {
 
 PlayState.EXPLOSION_TIME = 0.35;   // seconds
 
+//  A rocket hit the bonus ship: extra points and, if the theme has one, the topic of the day.
+PlayState.prototype.hitBonus = function(game) {
+    game.score += this.config.pointsPerBonus;
+    game.runStats.bonus += 1;
+    this.explosions.push({ x: this.bonus.x, y: this.bonus.y, age: 0 });
+    var topic = game.theme && game.theme.texts && game.theme.texts.topic;
+    this.banner = {
+        age: 0,
+        text: topic ? T('bonus.topic', { t: topic }, 'Topic of the day: ' + topic)
+                    : T('bonus.points', { p: this.config.pointsPerBonus }, '+' + this.config.pointsPerBonus + ' points')
+    };
+    this.bonus = null;
+    this.bonusTimer = this.between(this.config.bonusNextDelay);
+    game.sounds.playSound('bang');
+    if (window.NeonDaily) { window.NeonDaily.track('bonus', { w: this.level }); }
+};
+
 PlayState.prototype.draw = function(game, dt, ctx) {
 
     //  Clear the background.
@@ -593,6 +713,9 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         }
         for(var i=0; i<this.bombs.length; i++) {
             NeonTheme.draw(ctx, theme, 'bomb', this.bombs[i].x, this.bombs[i].y, 4, 8, now);
+        }
+        if (this.bonus) {
+            NeonTheme.draw(ctx, theme, 'bonus', this.bonus.x, this.bonus.y, this.bonus.width, this.bonus.height, now);
         }
         ctx.fillStyle = theme.palette.rocket;
         for(var i=0; i<this.rockets.length; i++) {
@@ -621,12 +744,25 @@ PlayState.prototype.draw = function(game, dt, ctx) {
     var textYpos = game.gameBounds.bottom + ((game.height - game.gameBounds.bottom) / 2) + 14/2;
     ctx.font="14px Arial";
     ctx.fillStyle = '#ffffff';
-    var info = "Lives: " + game.lives;
+    var info = T('hud.lives', { n: game.lives }, "Lives: " + game.lives);
     ctx.textAlign = "left";
     ctx.fillText(info, game.gameBounds.left, textYpos);
-    info = "Score: " + game.score + ", Level: " + game.level;
+    info = T('hud.score', { s: game.score, w: game.level }, "Score: " + game.score + ", Level: " + game.level);
     ctx.textAlign = "right";
     ctx.fillText(info, game.gameBounds.right, textYpos);
+
+    //  Message after a bonus ship is hit, where the ship was flying.
+    if (this.banner) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (this.config.bonusBannerSeconds - this.banner.age) * 2);
+        ctx.font = "bold 13px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = (theme && theme.palette.bonus) || '#ffdc3c';
+        ctx.fillText(this.banner.text, game.width / 2, game.gameBounds.top - 16, game.gameBounds.right - game.gameBounds.left);
+        ctx.restore();
+        ctx.textBaseline = "alphabetic";
+    }
 
     //  If we're in debug mode, draw bounds.
     if(this.config.debugMode) {
@@ -690,7 +826,7 @@ PauseState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    ctx.fillText("Paused", game.width / 2, game.height/2);
+    ctx.fillText(T('paused', null, "Paused"), game.width / 2, game.height/2);
     return;
 };
 
@@ -702,14 +838,14 @@ PauseState.prototype.draw = function(game, dt, ctx) {
 */
 function LevelIntroState(level) {
     this.level = level;
-    this.countdownMessage = "3";
+    this.countdownMessage = "2";
 }
 
 LevelIntroState.prototype.update = function(game, dt) {
 
     //  Update the countdown.
     if(this.countdown === undefined) {
-        this.countdown = 3; // countdown from 3 secs
+        this.countdown = game.config.introSeconds; // a short pause before each wave
     }
     this.countdown -= dt;
 
@@ -735,9 +871,9 @@ LevelIntroState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle"; 
     ctx.textAlign="center"; 
-    ctx.fillText("Level " + this.level, game.width / 2, game.height/2);
+    ctx.fillText(T('intro.wave', { n: this.level }, "Level " + this.level), game.width / 2, game.height/2);
     ctx.font="24px Arial";
-    ctx.fillText("Ready in " + this.countdownMessage, game.width / 2, game.height/2 + 36);      
+    ctx.fillText(T('intro.ready', { c: this.countdownMessage }, "Ready in " + this.countdownMessage), game.width / 2, game.height/2 + 36);      
     return;
 };
 
@@ -780,6 +916,19 @@ function Bomb(x, y, velocity) {
     this.velocity = velocity;
 }
  
+/*
+    Bonus ship
+
+    Crosses the top of the screen. Worth extra points, and it reveals the topic of the day.
+*/
+function BonusShip(x, y, velocity) {
+    this.x = x;
+    this.y = y;
+    this.velocity = velocity;
+    this.width = 24;
+    this.height = 12;
+}
+
 /*
     Invader 
 

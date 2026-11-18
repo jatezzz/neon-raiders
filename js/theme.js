@@ -12,11 +12,14 @@
     theme.json (all fields optional):
     {
       "id": "2026-11-17-cohete", "name": "Rocket launch",
-      "texts":   { "title": "Neon Raiders", "subtitle": "Today: rocket launch" },
+      "texts":   { "title": "Neon Raiders", "subtitle": "Today: rocket launch", "topic": "rocket launch" },
+                   (subtitle and topic can also be {"es": "...", "en": "..."})
       "palette": { "ship": "#00f0ff", "enemyA": "#ff00c8", "enemyB": "#a040ff", "enemyC": "#00ff9c",
-                   "bomb": "#ffdc3c", "rocket": "#ffffff", "hud": "#ffffff", "explosion": "#ff8c3c" },
+                   "bomb": "#ffdc3c", "rocket": "#ffffff", "hud": "#ffffff", "explosion": "#ff8c3c",
+                   "bonus": "#ffdc3c" },
       "sprites": { "ship": "ship.png", "enemyA": ["a1.png", "a2.png"], "enemyB": [...], "enemyC": [...],
-                   "bomb": "bomb.png", "explosion": ["e1.png", "e2.png", "e3.png", "e4.png"] },
+                   "bomb": "bomb.png", "bonus": "bonus.png",
+                   "explosion": ["e1.png", "e2.png", "e3.png", "e4.png"] },
       "credits": "Icons: Kenney (CC0)."
     }
 */
@@ -30,10 +33,10 @@
     var DEFAULT = {
         id: 'default',
         name: 'Neon',
-        texts: { title: 'Neon Raiders', subtitle: '' },
+        texts: { title: 'Neon Raiders', subtitle: '', topic: '' },
         palette: {
             ship: '#00f0ff', enemyA: '#ff00c8', enemyB: '#a040ff', enemyC: '#00ff9c',
-            bomb: '#ffdc3c', rocket: '#ffffff', hud: '#ffffff', explosion: '#ff8c3c'
+            bomb: '#ffdc3c', rocket: '#ffffff', hud: '#ffffff', explosion: '#ff8c3c', bonus: '#ffdc3c'
         },
         sprites: {},
         credits: ''
@@ -41,6 +44,11 @@
 
     function isColor(v) { return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v); }
     function isText(v, max) { return typeof v === 'string' && v.length <= max; }
+    //  A text, or the text for the player's language when the theme gives {es: '...', en: '...'}.
+    function localText(v, max) {
+        if (v && typeof v === 'object' && window.NeonI18n) { v = window.NeonI18n.local(v); }
+        return isText(v, max) ? v : null;
+    }
     function isFile(v) { return typeof v === 'string' && /^[a-zA-Z0-9._-]+\.(png|webp|svg)$/.test(v); }
 
     // Keep only well-formed fields; anything else falls back to the default.
@@ -51,13 +59,15 @@
         if (isText(raw.name, 60)) { t.name = raw.name; }
         if (raw.texts) {
             if (isText(raw.texts.title, 40)) { t.texts.title = raw.texts.title; }
-            if (isText(raw.texts.subtitle, 60)) { t.texts.subtitle = raw.texts.subtitle; }
+            var subtitle = localText(raw.texts.subtitle, 60), topic = localText(raw.texts.topic, 40);
+            if (subtitle !== null) { t.texts.subtitle = subtitle; }
+            if (topic !== null) { t.texts.topic = topic; }
         }
         if (raw.palette) {
             Object.keys(t.palette).forEach(function (k) { if (isColor(raw.palette[k])) { t.palette[k] = raw.palette[k]; } });
         }
         if (raw.sprites) {
-            ['ship', 'bomb'].forEach(function (k) { if (isFile(raw.sprites[k])) { t.sprites[k] = [raw.sprites[k]]; } });
+            ['ship', 'bomb', 'bonus'].forEach(function (k) { if (isFile(raw.sprites[k])) { t.sprites[k] = [raw.sprites[k]]; } });
             ['enemyA', 'enemyB', 'enemyC', 'explosion'].forEach(function (k) {
                 var v = raw.sprites[k];
                 if (isFile(v)) { v = [v]; }
@@ -136,6 +146,13 @@
             ctx.fillStyle = color;
             var leg = open ? 0 : 2;
             ctx.fillRect(l + leg, t + h - 4, 3, 4); ctx.fillRect(l + w - 3 - leg, t + h - 4, 3, 4);
+        } else if (kind === 'bonus') {
+            //  A small saucer: dome, body and three lights.
+            ctx.beginPath(); ctx.ellipse(x, t + h * 0.62, w / 2, h * 0.36, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(x, t + h * 0.34, w * 0.22, h * 0.34, 0, Math.PI, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = Math.floor(timeSec * 4) % 2 === 0 ? '#000' : '#fff';
+            for (var k = -1; k <= 1; k++) { ctx.fillRect(x + k * w * 0.25 - 1, t + h * 0.58, 2, 2); }
         } else {
             ctx.fillRect(l, t, w, h);
         }

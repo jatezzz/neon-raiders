@@ -5,6 +5,6 @@ build:
 	mkdir artifacts/dist
 
 	# Copy over the static site files.
-	cp -r index.html css js sounds themes artifacts/dist/.
+	cp -r index.html og.png css js sounds themes artifacts/dist/.
 
 .PHONY: build

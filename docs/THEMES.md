@@ -21,6 +21,7 @@ Every component has a fixed hit box. Images are scaled into it, so a theme never
 | `enemyB` | Enemy, middle rows | 18×14 | 1–8 |
 | `enemyC` | Enemy, bottom rows | 18×14 | 1–8 |
 | `bomb` | Enemy bomb | 4×8 | 1 |
+| `bonus` | Bonus ship that reveals the topic of the day | 24×12 | 1 |
 | `explosion` | Hit explosion | 24×24 | 1–8 over 0.35 s |
 
 Draw images at 2× to 4× the hit box with a transparent background. PNG, WebP or SVG, at most 256 px per side.
@@ -32,17 +33,30 @@ Keep a whole theme under 300 KB.
 {
   "id": "2026-11-17-cohete",
   "name": "Rocket launch",
-  "texts":   { "title": "Neon Raiders", "subtitle": "Theme: rocket launch" },
+  "texts":   { "title": "Neon Raiders",
+               "subtitle": { "es": "Tema: lanzamiento de cohete", "en": "Theme: rocket launch" },
+               "topic":    { "es": "lanzamiento de cohete", "en": "rocket launch" } },
   "palette": { "ship": "#00f0ff", "enemyA": "#ff00c8", "enemyB": "#a040ff", "enemyC": "#00ff9c",
-               "bomb": "#ffdc3c", "rocket": "#ffffff", "hud": "#ffffff", "explosion": "#ff8c3c" },
-  "sprites": { "ship": "ship.png", "enemyA": ["a1.png", "a2.png"], "bomb": "bomb.png",
+               "bomb": "#ffdc3c", "rocket": "#ffffff", "hud": "#ffffff", "explosion": "#ff8c3c",
+               "bonus": "#ffdc3c" },
+  "sprites": { "ship": "ship.png", "enemyA": ["a1.png", "a2.png"], "bomb": "bomb.png", "bonus": "bonus.png",
                "explosion": ["e1.png", "e2.png", "e3.png", "e4.png"] },
   "credits": "Who made each asset and under which license."
 }
 ```
 
 Every field is optional. A component without a sprite is drawn with its palette colour in the built-in neon style.
-Title: up to 40 characters. Subtitle: up to 60. Credits: up to 300.
+Title: up to 40 characters. Subtitle: up to 60. Topic: up to 40. Credits: up to 300.
+
+`subtitle` and `topic` can be a plain text or one text per language (`es`, `en`). The subtitle is shown on the
+title screen. The topic is shown when a player hits the bonus ship: "Tema de hoy: lanzamiento de cohete".
+See [DAILY.md](DAILY.md) for the daily challenge.
+
+## When to change the theme
+
+A new look does not bring visitors by itself; the daily challenge and the shared results do. So themes change
+weekly or for an event, not every day, and always after a person has approved the topic and the art.
+A theme that is no longer current goes back to `default`: a stale topic looks abandoned.
 
 ## Content rules
 

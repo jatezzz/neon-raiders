@@ -3,7 +3,14 @@
   "name": "Space (demo)",
   "texts": {
     "title": "Neon Raiders",
-    "subtitle": "Theme: asteroid storm"
+    "subtitle": {
+      "es": "Tema: tormenta de asteroides",
+      "en": "Theme: asteroid storm"
+    },
+    "topic": {
+      "es": "tormenta de asteroides",
+      "en": "asteroid storm"
+    }
   },
   "palette": {
     "ship": "#e6e6f0",
@@ -13,7 +20,8 @@
     "bomb": "#ff8c28",
     "rocket": "#00f0ff",
     "hud": "#ffffff",
-    "explosion": "#ffc83c"
+    "explosion": "#ffc83c",
+    "bonus": "#78dcff"
   },
   "sprites": {
     "ship": "ship.png",
@@ -30,6 +38,7 @@
       "rock-c2.png"
     ],
     "bomb": "bomb.png",
+    "bonus": "bonus.png",
     "explosion": [
       "explosion1.png",
       "explosion2.png",

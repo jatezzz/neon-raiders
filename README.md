@@ -1,52 +1,62 @@
 # Neon Raiders
 
-An open-source, fixed-screen arcade shooter in plain JavaScript, CSS and HTML: no frameworks, no build step.
-Clear each wave of raiders before they reach the ground; they speed up and drop more bombs every level.
+**Un reto de arcade nuevo cada día, igual para todos.** Juego de navegador de código abierto, hecho con JavaScript,
+CSS y HTML puros: sin frameworks, sin paso de compilación, sin registro.
 
-- **Play it:** [games.johnandrestrujillo.com/play/neon-raiders](https://games.johnandrestrujillo.com/play/neon-raiders)
-- **Controls:** arrow keys or swipe to move, space bar or tap to fire.
+- **Jugar:** [games.johnandrestrujillo.com/play/neon-raiders](https://games.johnandrestrujillo.com/play/neon-raiders)
+- **Controles:** flechas o arrastrar para moverte, Espacio o tocar para disparar, P para pausar.
 
-## Roadmap
+*English: a new arcade challenge every day, the same for everyone. Open-source browser game in plain JavaScript.
+Add `?lang=en` for English.*
 
-- New enemy types and wave patterns.
-- A mobile-first layout with on-screen controls.
-- A neon visual style to match [OpenArcade](https://games.johnandrestrujillo.com/play).
+![Neon Raiders](og.png)
 
-Ideas and pull requests are welcome.
+## Qué tiene
 
-## Credits and license
+- **Reto diario.** Cada día trae las mismas oleadas y las mismas naves bonus para todos los jugadores.
+  Tu mejor puntaje del día y tu racha se guardan en tu navegador. Detalles en [docs/DAILY.md](docs/DAILY.md).
+- **Compartir en un toque.** Al terminar, compartes tu resultado como texto; el enlace lleva al portal.
+- **Hecho para el teléfono.** Controles táctiles, vertical y horizontal.
+- **Temas.** El aspecto cambia con una carpeta de imágenes, sin tocar la dificultad.
+  Formato en [docs/THEMES.md](docs/THEMES.md).
+- **Español e inglés.**
+- **Medición anónima.** Contadores sin cookies ni identificadores, que respetan "Do Not Track".
+  Qué se envía exactamente: [docs/DAILY.md](docs/DAILY.md#anonymous-measurement).
 
-Neon Raiders is a fork of [dwmkerr/spaceinvaders](https://github.com/dwmkerr/spaceinvaders) by Dave Kerr, a learning
-exercise released under the MIT license. Thank you, Dave.
+## Probarlo en tu máquina
 
-Changes in this fork so far:
-
-- New name and texts.
-- The sound effects are new: they are synthesized from scratch. The upstream sounds came from the original 1978
-  arcade game and were not covered by the MIT license, so they were removed.
-- The upstream Google Analytics tag, sponsor button, Replit config and the unrelated `jev-invaders` project were removed.
-- An optional hook reports the final score to game portals that provide `window.PortalSDK`; standalone it does nothing.
-- The GitHub Pages workflow uses the current official actions.
-
-Released under the [MIT license](LICENSE). The original copyright notice is kept, and changes from 2026 on are
-copyright John Andrés Trujillo. This project is not affiliated with or endorsed by the owners of any classic arcade
-game or trademark.
-
-## Embedding the game
-
-```html
-<canvas id="gameCanvas"></canvas>
-<script src="js/spaceinvaders.js"></script>
-<script>
-  var canvas = document.getElementById("gameCanvas");
-  canvas.width = 800;
-  canvas.height = 600;
-  var game = new Game();
-  game.initialise(canvas);
-  game.start();
-  window.addEventListener("keydown", function (e) { game.keyDown(e.which); });
-  window.addEventListener("keyup", function (e) { game.keyUp(e.which); });
-</script>
+```
+python3 -m http.server 8000
 ```
 
-See `index.html` for the full setup, including touch controls and the starfield.
+y abre <http://localhost:8000>. Para ver otro tema: `?theme=demo-espacio`. Para jugar el reto de otro día:
+`?debug=true&day=2026-11-20`.
+
+## Hoja de ruta
+
+- Enemigos que salen de la formación en picada y enemigos blindados.
+- Entrada en vuelo de las oleadas.
+- Más temas.
+
+Las ideas y los pull requests son bienvenidos.
+
+## Créditos y licencia
+
+Neon Raiders es un fork de [dwmkerr/spaceinvaders](https://github.com/dwmkerr/spaceinvaders), de Dave Kerr, un
+ejercicio de aprendizaje publicado con licencia MIT. Gracias, Dave.
+
+Cambios de este fork:
+
+- Nombre y textos nuevos, en español e inglés.
+- Reto diario con formaciones por fecha, nave bonus, racha y resultado para compartir.
+- Controles táctiles y diseño adaptable al teléfono.
+- Sistema de temas con imágenes intercambiables.
+- Efectos de sonido nuevos, sintetizados desde cero. Los sonidos originales venían del arcade de 1978 y no estaban
+  cubiertos por la licencia MIT, así que se quitaron.
+- Se quitaron la etiqueta de Google Analytics, el botón de patrocinio, la configuración de Replit y el proyecto
+  `jev-invaders`, que no tenía relación.
+- Un gancho opcional informa el puntaje final a los portales que ofrecen `window.PortalSDK`.
+
+Publicado con [licencia MIT](LICENSE). Se conserva el aviso de copyright original, y los cambios desde 2026 son
+copyright de John Andrés Trujillo. Este proyecto no está afiliado ni respaldado por los dueños de ningún juego de
+arcade clásico ni de sus marcas.
