@@ -179,22 +179,30 @@ Game.prototype.mute = function(mute) {
 //  The main loop.
 function GameLoop(game) {
     var currentState = game.currentState();
-    if(currentState) {
+    if(!currentState) { return; }
 
-        //  Delta t is the time to update/draw.
-        var dt = 1 / game.config.fps;
+    //  The game advances by the real time that has passed, in fixed steps. A busy page (for example a portal
+    //  around the game) fires this timer less often than asked; without this the whole game would run in slow
+    //  motion and scores would not be comparable. After a long pause (hidden tab) the lost time is dropped.
+    var dt = 1 / game.config.fps;
+    var now = (window.performance && performance.now) ? performance.now() : Date.now();
+    if (game.lastTick === undefined) { game.lastTick = now; game.tickDebt = 0; }
+    game.tickDebt += (now - game.lastTick) / 1000;
+    game.lastTick = now;
+    var steps = Math.floor(game.tickDebt / dt + 0.001);
+    if (steps > 5) { steps = 5; game.tickDebt = 0; } else { game.tickDebt -= steps * dt; }
 
-        //  Get the drawing context.
-        var ctx = this.gameCanvas.getContext("2d");
-        
-        //  Update if we have an update function. Also draw
-        //  if we have a draw function.
-        if(currentState.update) {
+    for (var i = 0; i < steps; i++) {
+        currentState = game.currentState();
+        if(currentState && currentState.update) {
             currentState.update(game, dt);
         }
-        if(currentState.draw) {
-            currentState.draw(game, dt, ctx);
-        }
+    }
+
+    //  Draw once per tick, whatever state the updates ended in.
+    currentState = game.currentState();
+    if(currentState && currentState.draw) {
+        currentState.draw(game, dt, game.gameCanvas.getContext("2d"));
     }
 }
 
