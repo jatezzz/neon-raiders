@@ -117,14 +117,18 @@ visitors each sharing player brings.
 
 ## Reading the numbers
 
-The counters and the tagged visits end up in the portal's access log, so no analytics service is needed:
+The counters and the tagged visits end up in the portal's access log, so no analytics service is needed.
+
+On the OpenArcade portal they are part of its traffic report (visitors, what they saw, what they asked for), built
+from the same log. For any other server with a standard access log, `tools/events_report.py` prints the game's
+numbers per day: runs started and finished, shares by method, clicks on the game-over links, visits by tag, and
+visits per shared result:
 
 ```
-kubectl -n openarcade logs -l app=openarcade-public-edge --tail=-1 --since=168h | python3 tools/events_report.py
+python3 tools/events_report.py access.log
 ```
 
-It prints, per day: runs started and finished, shares by method, clicks on the game-over links, visits to the
-portal by tag, and visits per shared result. Link-preview and search crawlers are left out.
+Link-preview and search crawlers are left out.
 
 ## Inside a portal
 
