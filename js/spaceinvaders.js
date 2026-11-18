@@ -670,6 +670,12 @@ PlayState.prototype.update = function(game, dt) {
         }
     }
 
+    //  Keep the portal's score display up to date (optional arcade hook, see GameOverState.enter).
+    if (window.PortalSDK && window.PortalSDK.reportScore && game.score !== this.reportedScore) {
+        this.reportedScore = game.score;
+        window.PortalSDK.reportScore(game.score);
+    }
+
     //  Check for failure
     if(game.lives <= 0) {
         game.moveToState(new GameOverState());
