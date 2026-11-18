@@ -327,7 +327,12 @@
 
     function onRunStart() {
         hideOverlay();
-        track('run', { n: todayProgress().attempts + 1, sh: sharedDay ? 1 : '' });
+        //  "Did this player come back?" without knowing who they are: the run reports how many different days this
+        //  browser has played (dp) and the current streak (st). They are counts, not identifiers.
+        var days = read('nr.days', null);
+        if (!days || typeof days.count !== 'number') { days = { last: '', count: 0 }; }
+        if (!otherDay() && days.last !== today()) { days = { last: today(), count: days.count + 1 }; write('nr.days', days); }
+        track('run', { n: todayProgress().attempts + 1, sh: sharedDay ? 1 : '', dp: Math.max(days.count, 1), st: currentStreak() });
     }
 
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', bind); } else { bind(); }

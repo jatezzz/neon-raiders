@@ -47,6 +47,7 @@ Everything is kept in the player's browser (`localStorage`), nothing on a server
 | `nr.day` | Today's best score, the wave reached and the number of attempts |
 | `nr.streak` | The last day played and how many days in a row |
 | `nr.shared` | Best score and attempts on a shared challenge of another day |
+| `nr.days` | How many different days this browser has played (a count, to measure returning players without identifying them) |
 | `nr.lang` | The language chosen with `?lang=` |
 
 If the browser blocks storage (private mode), the game still works, without streak or best score.
@@ -99,7 +100,7 @@ name, the challenge day, the host the game runs on, whether it is embedded, the 
 | Event | When | Extra fields |
 |---|---|---|
 | `arrive` | The page was opened from a tagged link | `src`, `med` (the link's `utm_source` and `utm_medium`) |
-| `run` | A run starts | `n` attempt number today |
+| `run` | A run starts | `n` attempt number today, `sh` 1 on a shared challenge, `dp` how many different days this browser has played, `st` current streak |
 | `bonus` | A bonus ship is hit | `w` wave |
 | `over` | A run ends | `s` score, `w` wave, `b` bonus ships, `n` attempt |
 | `share_tap` | The share button is pressed | |
