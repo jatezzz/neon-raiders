@@ -5,7 +5,7 @@ The game sends anonymous counters to <portal>/e?ev=... and tags its links with u
 (see docs/DAILY.md). Both end up in the portal's access log, so no analytics service is needed.
 
 Usage:
-    kubectl logs deploy/public-edge --since=168h | python3 tools/events_report.py
+    kubectl -n openarcade logs -l app=openarcade-public-edge --tail=-1 --since=168h | python3 tools/events_report.py
     python3 tools/events_report.py access.log [more.log ...]
 
 Reads the "combined" log format (also works with anything that has the request in quotes).

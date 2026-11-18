@@ -120,7 +120,7 @@ visitors each sharing player brings.
 The counters and the tagged visits end up in the portal's access log, so no analytics service is needed:
 
 ```
-kubectl logs deploy/public-edge --since=168h | python3 tools/events_report.py
+kubectl -n openarcade logs -l app=openarcade-public-edge --tail=-1 --since=168h | python3 tools/events_report.py
 ```
 
 It prints, per day: runs started and finished, shares by method, clicks on the game-over links, visits to the
