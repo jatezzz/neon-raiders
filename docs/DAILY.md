@@ -31,6 +31,25 @@ Whoever opens that link plays **that** challenge, on any later day and in any ti
 - A day before challenge #1, more than one day ahead, or not a real date is ignored: the player gets today's.
 - Inside a portal the parameter is read from the page around the game.
 
+## A score to beat: challenge someone
+
+A link can carry a score to beat: `...?d=2026-11-18&vs=220` (and `&by=bot` when the score is the auto-player's).
+
+- The goal is shown on the title screen and stays in the score line during the whole run ("Meta: 220"); it turns
+  green when passed.
+- The result card is different for a **win**, a **tie** and a **loss**, each with its own line. The line is picked by
+  the score, so the same result always reads the same.
+- Sharing a result dares the next person to beat **that** score: the link carries `vs=<your score>` and the same
+  challenge day.
+
+**Declared and verified scores.** Anybody can type a number in a link, so a score that arrives in a link is only
+*declared*, and the title screen says so. It is shown as *verified* only when it matches a run on record in
+`VERIFIED` (`js/daily.js`): today that is the auto-player's 220 on challenge #1, recorded twice with the same result.
+Player scores are never marked verified by the game alone.
+
+Portals with their own game-over screen receive the outcome too:
+`PortalSDK.gameOver(score, { level, share, outcome, headline, joke })`.
+
 ## The bonus ship
 
 - It crosses the top of the screen 6 to 12 seconds into a wave, then every 12 to 20 seconds.
@@ -102,7 +121,7 @@ name, the challenge day, the host the game runs on, whether it is embedded, the 
 | `arrive` | The page was opened from a tagged link | `src`, `med` (the link's `utm_source` and `utm_medium`) |
 | `run` | A run starts | `n` attempt number today, `sh` 1 on a shared challenge, `dp` how many different days this browser has played, `st` current streak |
 | `bonus` | A bonus ship is hit | `w` wave |
-| `over` | A run ends | `s` score, `w` wave, `b` bonus ships, `n` attempt |
+| `over` | A run ends | `s` score, `w` wave, `b` bonus ships, `n` attempt, `vs` score to beat, `o` outcome (`win`, `tie`, `lose`) |
 | `share_tap` | The share button is pressed | |
 | `share` | A result was shared | `how`: `native`, `whatsapp` or `copy` |
 | `rec` | The recommended game is opened | `to` game |

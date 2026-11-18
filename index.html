@@ -19,8 +19,8 @@
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta name="twitter:card" content="summary_large_image">
-        <link rel="stylesheet" type="text/css" href="css/core.css?v=20261118f">
-        <link rel="stylesheet" type="text/css" href="css/typeography.css?v=20261118f">
+        <link rel="stylesheet" type="text/css" href="css/core.css?v=20261118g">
+        <link rel="stylesheet" type="text/css" href="css/typeography.css?v=20261118g">
         <style>
     
             /* Styling needed for a fullscreen canvas and no scrollbars. */
@@ -132,6 +132,15 @@
             #gameover h2 { margin: 0 0 4px; font-size: 16px; font-weight: normal; color: #00f0ff; }
             #goScore { margin: 0; font-size: 46px; font-weight: bold; line-height: 1.1; }
             #goScore + small { color: #b0b0c0; }
+            /* Result against a score to beat: one look for a win, one for a tie, one for a loss. */
+            #goOutcome { margin: 6px 0 0; font-size: 24px; font-weight: bold; }
+            #goJoke { margin: 2px 0 8px; font-size: 14px; color: #e8e8f0; font-style: italic; }
+            #gameover.outcome-win .card { border-color: #00ff9c; box-shadow: 0 0 22px rgba(0, 255, 156, 0.55); }
+            #gameover.outcome-win #goOutcome { color: #00ff9c; }
+            #gameover.outcome-tie .card { border-color: #ffdc3c; box-shadow: 0 0 22px rgba(255, 220, 60, 0.5); }
+            #gameover.outcome-tie #goOutcome { color: #ffdc3c; }
+            #gameover.outcome-lose .card { border-color: #ff00c8; box-shadow: 0 0 22px rgba(255, 0, 200, 0.5); }
+            #gameover.outcome-lose #goOutcome { color: #ff00c8; }
             #goMeta, #goBest { margin: 6px 0; font-size: 13px; color: #b0b0c0; }
             #goRow { margin: 6px 0; font-size: 20px; letter-spacing: 2px; }
             #gameover button, #gameover a.button {
@@ -207,6 +216,8 @@
         <div id="gameover" hidden role="dialog" aria-modal="true" aria-labelledby="goTitle">
             <div class="card">
                 <h2 id="goTitle"></h2>
+                <p id="goOutcome" hidden></p>
+                <p id="goJoke" hidden></p>
                 <p id="goScore"></p><small data-i18n="over.points">puntos</small>
                 <div><p id="goRow"></p><p id="goMeta"></p></div>
                 <p id="goBest"></p>
@@ -237,12 +248,12 @@
             <button type="button" class="fire" data-key="SPACE" aria-label="Fire" data-i18n="pad.fire">FUEGO</button>
         </div>
 
-        <script src="js/starfield.js?v=20261118f"></script>
-        <script src="js/i18n.js?v=20261118f"></script>
-        <script src="js/theme.js?v=20261118f"></script>
-        <script src="js/daily.js?v=20261118f"></script>
-        <script src="js/spaceinvaders.js?v=20261118f"></script>
-        <script src="js/touch-controls.js?v=20261118f"></script>
+        <script src="js/starfield.js?v=20261118g"></script>
+        <script src="js/i18n.js?v=20261118g"></script>
+        <script src="js/theme.js?v=20261118g"></script>
+        <script src="js/daily.js?v=20261118g"></script>
+        <script src="js/spaceinvaders.js?v=20261118g"></script>
+        <script src="js/touch-controls.js?v=20261118g"></script>
         <script>
 
             //  Texts in the player's language (Spanish by default).

@@ -72,6 +72,29 @@
     function today() { return forcedDay || sharedDay || dayKey(); }
     function otherDay() { return !!(forcedDay || sharedDay); }
 
+    //  A link can also carry a score to beat (?vs=220, and &by=bot when the score is the auto-player's).
+    //  A score that arrives in a link is only DECLARED: anybody can type a number in a link. It counts as VERIFIED
+    //  only when it matches a run on record below (a recorded run that can be played back or repeated).
+    var VERIFIED = [
+        { day: '2026-11-18', score: 220, by: 'bot' }      // the auto-player on challenge #1: recorded twice, same score
+    ];
+    function readTarget() {
+        var search = window.location.search;
+        try { if (embedded && window.top.location.search) { search = window.top.location.search; } } catch (err) { /* other origin */ }
+        var score = Number((search.match(/[?&]vs=(\d{1,6})(?:&|$)/) || [])[1]);
+        if (!score) { return null; }
+        var by = (search.match(/[?&]by=(bot)(?:&|$)/) || [])[1] || 'player';
+        var verified = VERIFIED.some(function (v) { return v.day === today() && v.score === score && v.by === by; });
+        return { score: score, by: by, verified: verified };
+    }
+    var target = readTarget();
+
+    //  'win', 'tie' or 'lose' against the score to beat; null when the link carried none.
+    function outcome(score) {
+        if (!target) { return null; }
+        return score > target.score ? 'win' : (score === target.score ? 'tie' : 'lose');
+    }
+
     //  Leave a shared challenge and play today's.
     function playToday() {
         try { window.sessionStorage.setItem('nr.today', '1'); } catch (err) { /* no storage */ }
@@ -175,7 +198,10 @@
     }
 
     //  The link of a shared result names its challenge day, so the other person plays the same waves.
-    function shareUrl() { return withUtm(CONFIG.portal + CONFIG.playPath + '?d=' + today(), 'share', 'score'); }
+    //  It also dares the next person to beat this score (declared, as any score in a link).
+    function shareUrl(score) {
+        return withUtm(CONFIG.portal + CONFIG.playPath + '?d=' + today() + (score ? '&vs=' + score : ''), 'share', 'score');
+    }
 
     //  One square per wave: cleared waves, then the wave where the run ended.
     function waveRow(wave) {
@@ -190,9 +216,13 @@
             '👾 ' + I.t('share.line', { s: I.number(result.score), w: result.wave }) +
                 (result.bonus ? ' · 🛸×' + result.bonus : '') +
                 (summary.streak > 1 ? ' · 🔥 ' + I.t('share.streak', { n: summary.streak }) : ''),
-            waveRow(result.wave),
-            I.t('share.dare')
+            waveRow(result.wave)
         ];
+        var o = outcome(result.score);
+        if (o) {
+            lines.push(I.t('share.' + o + '.' + target.by, { t: I.number(target.score), n: I.number(Math.abs(result.score - target.score)) }));
+        }
+        lines.push(result.score > 0 ? I.t('share.dare.score', { s: I.number(result.score) }) : I.t('share.dare'));
         return lines.join('\n');
     }
 
@@ -284,12 +314,20 @@
     function onGameOver(game) {
         var result = { score: game.score, wave: game.level, kills: game.runStats.kills, bonus: game.runStats.bonus };
         var summary = recordRun(result);
-        lastShare = { text: shareText(result, summary), url: shareUrl() };
-        track('over', { s: result.score, w: result.wave, b: result.bonus, n: summary.attempts });
+        var o = outcome(result.score);
+        //  One of three lines per outcome, picked by the score so the same result always reads the same.
+        var joke = o ? I.t('joke.' + o + '.' + target.by + '.' + (result.score % 3)) : '';
+        var headline = o ? I.t('over.' + o, { t: I.number(target.score), n: I.number(Math.abs(result.score - target.score)) }) : '';
+        lastShare = { text: shareText(result, summary), url: shareUrl(result.score), outcome: o, headline: headline, joke: joke };
+        track('over', { s: result.score, w: result.wave, b: result.bonus, n: summary.attempts, o: o || '', vs: target ? target.score : '' });
         //  A portal that embeds the game with its SDK shows its own game-over screen over this one.
         if (!overlay || (embedded && window.PortalSDK)) { return summary; }
 
         el('goTitle').textContent = I.t('over.title', { n: challengeNumber(), date: I.shortDate(today()) });
+        //  Different card for a win, a loss and a tie against the score to beat.
+        overlay.className = o ? 'outcome-' + o : '';
+        el('goOutcome').hidden = !o; el('goJoke').hidden = !o;
+        el('goOutcome').textContent = headline; el('goJoke').textContent = joke;
         el('goScore').textContent = I.number(result.score);
         el('goMeta').textContent = I.t('over.meta', { w: result.wave, k: result.kills, b: result.bonus });
         el('goRow').textContent = waveRow(result.wave);
@@ -316,6 +354,8 @@
 
     //  The full text of the last result, link included (for portals that show their own share button).
     function shareMessage() { return lastShare ? lastShare.text + '\n' + lastShare.url : null; }
+    //  For portals: the headline and the line of the last result ('win', 'tie', 'lose' or null).
+    function lastResult() { return lastShare ? { outcome: lastShare.outcome, headline: lastShare.headline, joke: lastShare.joke } : null; }
 
     function hideOverlay() {
         if (overlay) { overlay.hidden = true; }
@@ -332,14 +372,15 @@
         var days = read('nr.days', null);
         if (!days || typeof days.count !== 'number') { days = { last: '', count: 0 }; }
         if (!otherDay() && days.last !== today()) { days = { last: today(), count: days.count + 1 }; write('nr.days', days); }
-        track('run', { n: todayProgress().attempts + 1, sh: sharedDay ? 1 : '', dp: Math.max(days.count, 1), st: currentStreak() });
+        track('run', { n: todayProgress().attempts + 1, sh: sharedDay ? 1 : '', dp: Math.max(days.count, 1), st: currentStreak(),
+                       vs: target ? target.score : '' });
     }
 
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', bind); } else { bind(); }
 
     window.NeonDaily = {
         CONFIG: CONFIG, today: today, challengeNumber: challengeNumber, rng: rng, formation: formation,
-        sharedDay: sharedDay, otherDay: otherDay, playToday: playToday,
+        sharedDay: sharedDay, otherDay: otherDay, playToday: playToday, target: target, outcome: outcome, lastResult: lastResult,
         todayProgress: todayProgress, currentStreak: currentStreak, recordRun: recordRun,
         shareText: shareText, shareUrl: shareUrl, shareMessage: shareMessage, withUtm: withUtm, waveRow: waveRow,
         track: track, trackArrival: trackArrival, sent: sent,

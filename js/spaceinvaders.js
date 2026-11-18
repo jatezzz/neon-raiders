@@ -136,6 +136,7 @@ Game.prototype.newRun = function() {
     this.score = 0;
     this.lives = 3;
     this.runStats = { kills: 0, bonus: 0 };
+    this.goalPassed = false;
     this.rng = window.NeonDaily ? window.NeonDaily.rng('run') : Math.random;
     if (window.NeonDaily) { window.NeonDaily.onRunStart(); }
     this.moveToState(new LevelIntroState(this.level));
@@ -316,7 +317,15 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
         ctx.fillText(i18n.t(daily.sharedDay ? 'title.shared' : 'title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
     }
     ctx.font="16px Arial";
-    if (texts.subtitle) {
+    if (daily && i18n && daily.target) {
+        //  A score to beat came with the link: it is the goal of this run.
+        ctx.fillStyle = '#ffdc3c';
+        ctx.fillText(i18n.t('target.title.' + daily.target.by, { t: i18n.number(daily.target.score) }), cx, cy - 12);
+        ctx.font="11px Arial";
+        ctx.fillStyle = '#b0b0c0';
+        ctx.fillText(i18n.t(daily.target.verified ? 'target.verified' : 'target.declared'), cx, cy + 3);
+        ctx.font="16px Arial";
+    } else if (texts.subtitle) {
         ctx.fillStyle = (game.theme && game.theme.palette.enemyA) || '#ffffff';
         ctx.fillText(texts.subtitle, cx, cy - 12);
     }
@@ -360,7 +369,9 @@ GameOverState.prototype.enter = function(game) {
     //  Optional arcade hook: portals such as OpenArcade inject window.PortalSDK; standalone it does nothing.
     //  The portal shows its own game-over screen, so it also gets the text to share.
     if (window.PortalSDK && window.PortalSDK.gameOver) {
-        window.PortalSDK.gameOver(game.score, { level: game.level, share: share });
+        var last = window.NeonDaily ? window.NeonDaily.lastResult() : null;
+        window.PortalSDK.gameOver(game.score, { level: game.level, share: share, outcome: last && last.outcome,
+            headline: last && last.headline, joke: last && last.joke });
     }
 };
 
@@ -769,6 +780,21 @@ PlayState.prototype.draw = function(game, dt, ctx) {
     info = T('hud.score', { s: game.score, w: game.level }, "Score: " + game.score + ", Level: " + game.level);
     ctx.textAlign = "right";
     ctx.fillText(info, game.gameBounds.right, textYpos);
+
+    //  The score to beat stays in sight for the whole run, and turns green once passed.
+    var goal = window.NeonDaily && window.NeonDaily.target;
+    if (goal && window.NeonI18n) {
+        var passed = game.score > goal.score;
+        ctx.textAlign = "center";
+        ctx.fillStyle = passed ? '#00ff9c' : '#ffdc3c';
+        ctx.fillText((passed ? '\u2714 ' : '') + window.NeonI18n.t('target.hud', { t: goal.score }),
+            game.gameBounds.left + (game.gameBounds.right - game.gameBounds.left) * 0.4, textYpos);
+        if (passed && !this.goalAnnounced) {
+            this.goalAnnounced = true;
+            if (!game.goalPassed) { game.goalPassed = true; this.banner = { age: 0, text: window.NeonI18n.t('target.passed', { t: goal.score }) }; }
+        }
+        ctx.fillStyle = '#ffffff';
+    }
 
     //  Message after a bonus ship is hit, where the ship was flying.
     if (this.banner) {
