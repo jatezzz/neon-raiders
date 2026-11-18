@@ -17,6 +17,20 @@ with friends, and a link that always leads to the portal, <https://games.johnand
 The bomb sequence is the same, but when each number is used depends on the frame timing and on which enemies are
 still alive, so two runs are comparable, not identical.
 
+## Shared challenges: same waves on any day, in any time zone
+
+"Today" is each player's own calendar date, so two players far apart can be on different challenges at the same
+moment (at 07:00 UTC it is already tomorrow in Kiritimati and still yesterday in Pago Pago). A comparison of
+scores would then be unfair.
+
+So a shared result carries its challenge day: `.../play/neon-raiders?d=2026-11-18&utm_source=share...`.
+Whoever opens that link plays **that** challenge, on any later day and in any time zone. The title says
+"Reto compartido #1 · 18 nov", and a link under the game switches to today's challenge.
+
+- A shared challenge of another day has its own best score (`nr.shared`) and does not count for the streak.
+- A day before challenge #1, more than one day ahead, or not a real date is ignored: the player gets today's.
+- Inside a portal the parameter is read from the page around the game.
+
 ## The bonus ship
 
 - It crosses the top of the screen 6 to 12 seconds into a wave, then every 12 to 20 seconds.
@@ -32,6 +46,7 @@ Everything is kept in the player's browser (`localStorage`), nothing on a server
 |---|---|
 | `nr.day` | Today's best score, the wave reached and the number of attempts |
 | `nr.streak` | The last day played and how many days in a row |
+| `nr.shared` | Best score and attempts on a shared challenge of another day |
 | `nr.lang` | The language chosen with `?lang=` |
 
 If the browser blocks storage (private mode), the game still works, without streak or best score.
@@ -55,7 +70,7 @@ Neon Raiders · Reto #12 (29 nov)
 👾 1.240 pts · oleada 3 · 🛸×2 · 🔥 racha 4
 🟩🟩💥
 ¿Me superas?
-https://games.johnandrestrujillo.com/play/neon-raiders?utm_source=share&utm_medium=score&utm_campaign=d20261129&utm_content=portal
+https://games.johnandrestrujillo.com/play/neon-raiders?d=2026-11-29&utm_source=share&utm_medium=score&utm_campaign=d20261129&utm_content=portal
 ```
 
 One green square per wave cleared, then the wave where the run ended.

@@ -50,7 +50,33 @@
     //  ?day=YYYY-MM-DD together with ?debug=true plays another day's challenge (for tests).
     var forcedDay = debug ? (window.location.search.match(/[?&]day=(\d{4}-\d{2}-\d{2})\b/) || [])[1] : null;
 
-    function today() { return forcedDay || dayKey(); }
+    //  A shared result carries its challenge day (?d=YYYY-MM-DD). Whoever opens the link plays THAT challenge,
+    //  whatever their own date or time zone, so the two scores can be compared. Inside a portal the parameter is
+    //  on the page around the game.
+    function readSharedDay() {
+        var search = window.location.search;
+        try { if (embedded && window.top.location.search) { search = window.top.location.search; } } catch (err) { /* other origin */ }
+        var day = (search.match(/[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/) || [])[1];
+        if (!day) { return null; }
+        try { if (window.sessionStorage.getItem('nr.today') === '1') { return null; } } catch (err) { /* no storage */ }
+        var p = day.split('-'), probe = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+        if (isNaN(probe.getTime()) || dayKeyUtc(probe) !== day) { return null; }                 // not a real date
+        var ahead = toUtcDays(day) - toUtcDays(dayKey());
+        if (toUtcDays(day) < toUtcDays(CONFIG.firstDay) || ahead > 1) { return null; }          // before #1, or in the future
+        return day === dayKey() ? null : day;
+    }
+    function dayKeyUtc(d) { return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+    var sharedDay = forcedDay ? null : readSharedDay();
+
+    //  The challenge being played: today's, unless a shared link (or a test) asks for another day.
+    function today() { return forcedDay || sharedDay || dayKey(); }
+    function otherDay() { return !!(forcedDay || sharedDay); }
+
+    //  Leave a shared challenge and play today's.
+    function playToday() {
+        try { window.sessionStorage.setItem('nr.today', '1'); } catch (err) { /* no storage */ }
+        window.location.reload();
+    }
     function challengeNumber(key) { return toUtcDays(key || today()) - toUtcDays(CONFIG.firstDay) + 1; }
 
     function hash(str) {                       // FNV-1a, 32 bits
@@ -108,8 +134,12 @@
         try { window.localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* private mode: play without progress */ }
     }
 
+    //  Progress of the challenge being played. A shared challenge of another day has its own record, so it never
+    //  replaces today's best score.
+    function progressKey() { return otherDay() ? 'nr.shared' : 'nr.day'; }
+
     function todayProgress() {
-        var p = read('nr.day', null);
+        var p = read(progressKey(), null);
         if (!p || p.day !== today()) { p = { day: today(), best: 0, bestWave: 0, attempts: 0 }; }
         return p;
     }
@@ -128,11 +158,11 @@
         var isBest = result.score > p.best;
         if (isBest) { p.best = result.score; p.bestWave = result.wave; }
         var streak = currentStreak();
-        if (!forcedDay) {
+        if (!otherDay()) {                      // only today's challenge keeps the streak going
             var s = read('nr.streak', null);
             if (!s || s.last !== today()) { streak += 1; write('nr.streak', { last: today(), count: streak }); }
-            write('nr.day', p);
         }
+        if (!forcedDay) { write(progressKey(), p); }
         return { best: p.best, bestWave: p.bestWave, attempts: p.attempts, isBest: isBest, streak: Math.max(streak, 1) };
     }
 
@@ -144,7 +174,8 @@
             '&utm_campaign=d' + today().replace(/-/g, '') + '&utm_content=' + from;
     }
 
-    function shareUrl() { return withUtm(CONFIG.portal + CONFIG.playPath, 'share', 'score'); }
+    //  The link of a shared result names its challenge day, so the other person plays the same waves.
+    function shareUrl() { return withUtm(CONFIG.portal + CONFIG.playPath + '?d=' + today(), 'share', 'score'); }
 
     //  One square per wave: cleared waves, then the wave where the run ended.
     function waveRow(wave) {
@@ -178,7 +209,7 @@
     function track(name, props) {
         var q = 'ev=' + encodeURIComponent(name) + '&d=' + today() + '&h=' + encodeURIComponent(window.location.hostname) +
             '&m=' + (embedded ? 'embed' : 'page') + '&l=' + I.lang;
-        Object.keys(props || {}).forEach(function (k) { q += '&' + k + '=' + encodeURIComponent(props[k]); });
+        Object.keys(props || {}).forEach(function (k) { if (props[k] !== '') { q += '&' + k + '=' + encodeURIComponent(props[k]); } });
         sent.push(q);
         if (!trackingAllowed()) { return; }
         var url = CONFIG.portal + CONFIG.eventsPath + '?' + q;
@@ -296,13 +327,14 @@
 
     function onRunStart() {
         hideOverlay();
-        track('run', { n: todayProgress().attempts + 1 });
+        track('run', { n: todayProgress().attempts + 1, sh: sharedDay ? 1 : '' });
     }
 
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', bind); } else { bind(); }
 
     window.NeonDaily = {
         CONFIG: CONFIG, today: today, challengeNumber: challengeNumber, rng: rng, formation: formation,
+        sharedDay: sharedDay, otherDay: otherDay, playToday: playToday,
         todayProgress: todayProgress, currentStreak: currentStreak, recordRun: recordRun,
         shareText: shareText, shareUrl: shareUrl, shareMessage: shareMessage, withUtm: withUtm, waveRow: waveRow,
         track: track, trackArrival: trackArrival, sent: sent,

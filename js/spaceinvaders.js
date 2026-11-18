@@ -305,7 +305,7 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
         //  Today's challenge, the same for everyone.
         ctx.font="16px Arial";
         ctx.fillStyle = (game.theme && game.theme.palette.ship) || '#00f0ff';
-        ctx.fillText(i18n.t('title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
+        ctx.fillText(i18n.t(daily.sharedDay ? 'title.shared' : 'title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
     }
     ctx.font="16px Arial";
     if (texts.subtitle) {
