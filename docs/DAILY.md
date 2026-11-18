@@ -125,3 +125,14 @@ kubectl logs deploy/public-edge --since=168h | python3 tools/events_report.py
 
 It prints, per day: runs started and finished, shares by method, clicks on the game-over links, visits to the
 portal by tag, and visits per shared result. Link-preview and search crawlers are left out.
+
+## Inside a portal
+
+A portal that embeds the game and provides `window.PortalSDK` usually shows its own game-over screen on top of
+the game. In that case the game does not open its own screen: it sends the result and the text to share with
+`PortalSDK.gameOver(score, { level, share })`, and the portal shows the share button.
+
+## Updating the game
+
+`index.html` loads its scripts and styles with `?v=<version>`. Change the version in `index.html` whenever a script
+or style changes, so a browser never runs an old cached script with a new page.

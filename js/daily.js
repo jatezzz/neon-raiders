@@ -255,7 +255,8 @@
         var summary = recordRun(result);
         lastShare = { text: shareText(result, summary), url: shareUrl() };
         track('over', { s: result.score, w: result.wave, b: result.bonus, n: summary.attempts });
-        if (!overlay) { return summary; }
+        //  A portal that embeds the game with its SDK shows its own game-over screen over this one.
+        if (!overlay || (embedded && window.PortalSDK)) { return summary; }
 
         el('goTitle').textContent = I.t('over.title', { n: challengeNumber(), date: I.shortDate(today()) });
         el('goScore').textContent = I.number(result.score);
@@ -282,6 +283,9 @@
         return summary;
     }
 
+    //  The full text of the last result, link included (for portals that show their own share button).
+    function shareMessage() { return lastShare ? lastShare.text + '\n' + lastShare.url : null; }
+
     function hideOverlay() {
         if (overlay) { overlay.hidden = true; }
         document.body.classList.remove('over');
@@ -300,7 +304,7 @@
     window.NeonDaily = {
         CONFIG: CONFIG, today: today, challengeNumber: challengeNumber, rng: rng, formation: formation,
         todayProgress: todayProgress, currentStreak: currentStreak, recordRun: recordRun,
-        shareText: shareText, shareUrl: shareUrl, withUtm: withUtm, waveRow: waveRow,
+        shareText: shareText, shareUrl: shareUrl, shareMessage: shareMessage, withUtm: withUtm, waveRow: waveRow,
         track: track, trackArrival: trackArrival, sent: sent,
         onRunStart: onRunStart, onGameOver: onGameOver, hideOverlay: hideOverlay, locked: locked,
         embedded: embedded, onPortal: onPortal

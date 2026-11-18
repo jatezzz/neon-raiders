@@ -343,9 +343,16 @@ function GameOverState() {
 //  Record the run and open the game-over screen (js/daily.js) with the share button.
 GameOverState.prototype.enter = function(game) {
     this.overlay = false;
+    var share = null;
     if (window.NeonDaily) {
         window.NeonDaily.onGameOver(game);
+        share = window.NeonDaily.shareMessage();
         this.overlay = !!document.getElementById('gameover');
+    }
+    //  Optional arcade hook: portals such as OpenArcade inject window.PortalSDK; standalone it does nothing.
+    //  The portal shows its own game-over screen, so it also gets the text to share.
+    if (window.PortalSDK && window.PortalSDK.gameOver) {
+        window.PortalSDK.gameOver(game.score, { level: game.level, share: share });
     }
 };
 
@@ -665,8 +672,6 @@ PlayState.prototype.update = function(game, dt) {
 
     //  Check for failure
     if(game.lives <= 0) {
-        // Optional arcade hook: portals such as OpenArcade inject window.PortalSDK; standalone it does nothing.
-        if (window.PortalSDK && window.PortalSDK.gameOver) { window.PortalSDK.gameOver(game.score, { level: game.level }); }
         game.moveToState(new GameOverState());
     }
 
