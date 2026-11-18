@@ -17,6 +17,7 @@ Every component has a fixed hit box. Images are scaled into it, so a theme never
 | Key | Component | Hit box (px) | Frames |
 |---|---|---|---|
 | `ship` | Player ship | 20×16 | 1 |
+| `shipLeft`, `shipRight` | Optional: the ship banking to each side | 20×16 | 1 |
 | `enemyA` | Enemy, top two rows | 18×14 | 1–8 (2 per second) |
 | `enemyB` | Enemy, middle rows | 18×14 | 1–8 |
 | `enemyC` | Enemy, bottom rows | 18×14 | 1–8 |
@@ -26,6 +27,11 @@ Every component has a fixed hit box. Images are scaled into it, so a theme never
 
 Draw images at 2× to 4× the hit box with a transparent background. PNG, WebP or SVG, at most 256 px per side.
 Keep a whole theme under 300 KB.
+
+Without `shipLeft` and `shipRight` the game leans the `ship` image by itself when the player moves. The built-in
+ship also has an engine flame. When the ship is hit the screen shakes and flashes, and when it is destroyed it breaks
+into shards of the `ship` palette colour before the result appears. These effects are looks only: hit boxes and
+scores do not change, and players who ask their system for reduced motion get no shake or flash.
 
 ## theme.json
 

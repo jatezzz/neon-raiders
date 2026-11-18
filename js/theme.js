@@ -67,7 +67,7 @@
             Object.keys(t.palette).forEach(function (k) { if (isColor(raw.palette[k])) { t.palette[k] = raw.palette[k]; } });
         }
         if (raw.sprites) {
-            ['ship', 'bomb', 'bonus'].forEach(function (k) { if (isFile(raw.sprites[k])) { t.sprites[k] = [raw.sprites[k]]; } });
+            ['ship', 'shipLeft', 'shipRight', 'bomb', 'bonus'].forEach(function (k) { if (isFile(raw.sprites[k])) { t.sprites[k] = [raw.sprites[k]]; } });
             ['enemyA', 'enemyB', 'enemyC', 'explosion'].forEach(function (k) {
                 var v = raw.sprites[k];
                 if (isFile(v)) { v = [v]; }

@@ -79,6 +79,9 @@ function Game() {
     this.rng = Math.random;
     this.runStats = { kills: 0, bonus: 0 };
 
+    //  Feel: screen shake, flash and a short freeze on impact. Only looks; hit boxes and scores do not change.
+    this.fx = { shake: 0, shakeTotal: 1, mag: 0, flash: 0, flashColor: '#ffffff', hitstop: 0 };
+
     //  The state stack.
     this.stateStack = [];
 
@@ -130,12 +133,25 @@ Game.prototype.moveToState = function(state) {
    this.stateStack.push(state);
  };
 
+//  An impact: shake the screen, flash it, freeze the action for an instant and buzz the phone.
+//  People who ask their system for less motion get no shake and no flash.
+Game.prototype.impact = function(magnitude, seconds, flashColor, hitstop, vibrate) {
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!calm) {
+        this.fx.shake = seconds; this.fx.shakeTotal = seconds; this.fx.mag = magnitude;
+        this.fx.flash = 0.25; this.fx.flashColor = flashColor;
+    }
+    this.fx.hitstop = hitstop || 0;
+    try { if (vibrate && navigator.vibrate) { navigator.vibrate(vibrate); } } catch (err) { /* not allowed here */ }
+};
+
 //  Reset everything for a new run.
 Game.prototype.newRun = function() {
     this.level = 1;
     this.score = 0;
     this.lives = 3;
     this.runStats = { kills: 0, bonus: 0 };
+    this.fx = { shake: 0, shakeTotal: 1, mag: 0, flash: 0, flashColor: '#ffffff', hitstop: 0 };
     this.goalPassed = false;
     this.rng = window.NeonDaily ? window.NeonDaily.rng('run') : Math.random;
     if (window.NeonDaily) { window.NeonDaily.onRunStart(); }
@@ -290,6 +306,7 @@ WelcomeState.prototype.enter = function(game) {
     game.sounds.loadSound('shoot', 'sounds/shoot.wav');
     game.sounds.loadSound('bang', 'sounds/bang.wav');
     game.sounds.loadSound('explosion', 'sounds/explosion.wav');
+    game.sounds.loadSound('death', 'sounds/death.wav');
 };
 
 WelcomeState.prototype.update = function (game, dt) {
@@ -430,6 +447,10 @@ PlayState.prototype.enter = function(game) {
     //  Create the ship.
     this.ship = new Ship(game.width / 2, game.gameBounds.bottom);
     this.explosions = [];
+    this.pieces = [];           // debris of the ship (looks only)
+    this.dying = null;          // the last second and a half of a run, before the result
+    this.shipTilt = 0;          // -1 banking left ... 1 banking right
+    this.lastShipX = this.ship.x;
 
     //  Setup initial state.
     this.invaderCurrentVelocity =  10;
@@ -478,7 +499,47 @@ PlayState.prototype.between = function(range) {
     return range[0] + this.bonusRng() * (range[1] - range[0]);
 };
 
+//  Throw debris from a point: square shards with their own speed and spin.
+PlayState.prototype.spawnPieces = function(x, y, count, speed, color) {
+    for (var i = 0; i < count; i++) {
+        var angle = Math.random() * Math.PI * 2, v = speed * (0.4 + Math.random() * 0.6);
+        this.pieces.push({ x: x, y: y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v - speed * 0.5, rot: Math.random() * 6,
+            vr: (Math.random() - 0.5) * 14, size: 2 + Math.random() * 4, age: 0, life: 0.7 + Math.random() * 0.7, color: color });
+    }
+};
+
+//  The ship is destroyed: everything stops, the ship breaks apart, and only then comes the result.
+PlayState.prototype.startDying = function(game) {
+    this.dying = { t: 0, duration: 1.5 };
+    var color = (game.theme && game.theme.palette.ship) || '#00f0ff';
+    this.spawnPieces(this.ship.x, this.ship.y, 14, 150, color);
+    this.spawnPieces(this.ship.x, this.ship.y, 6, 70, '#ffffff');
+    this.explosions.push({ x: this.ship.x, y: this.ship.y, age: 0 });
+    game.impact(10, 0.7, '#ffffff', 0, [90, 60, 180]);
+    game.sounds.playSound('death');
+};
+
 PlayState.prototype.update = function(game, dt) {
+
+    //  Effects run on their own clock.
+    var fx = game.fx;
+    if (fx.shake > 0) { fx.shake -= dt; }
+    if (fx.flash > 0) { fx.flash -= dt; }
+    for (var p = 0; p < this.pieces.length; p++) {
+        var piece = this.pieces[p];
+        piece.age += dt; piece.vy += 240 * dt; piece.x += piece.vx * dt; piece.y += piece.vy * dt; piece.rot += piece.vr * dt;
+        if (piece.age > piece.life) { this.pieces.splice(p--, 1); }
+    }
+    if (this.dying) {
+        this.dying.t += dt;
+        for (var x = 0; x < this.explosions.length; x++) {
+            this.explosions[x].age += dt;
+            if (this.explosions[x].age > PlayState.EXPLOSION_TIME) { this.explosions.splice(x--, 1); }
+        }
+        if (this.dying.t >= this.dying.duration) { game.moveToState(new GameOverState()); }
+        return;
+    }
+    if (fx.hitstop > 0) { fx.hitstop -= dt; return; }       // the instant of an impact
     
     //  If the left or right arrow keys are pressed, move
     //  the ship. Check this on ticks rather than via a keydown
@@ -501,6 +562,12 @@ PlayState.prototype.update = function(game, dt) {
     if(this.ship.x > game.gameBounds.right) {
         this.ship.x = game.gameBounds.right;
     }
+
+    //  The ship banks towards the side it is moving to (keys, buttons or dragging) and levels out when it stops.
+    var moved = this.ship.x - this.lastShipX;
+    this.lastShipX = this.ship.x;
+    var lean = moved > 0.2 ? 1 : (moved < -0.2 ? -1 : 0);
+    this.shipTilt += (lean - this.shipTilt) * Math.min(1, dt * 12);
 
     //  Move each bomb.
     for(var i=0; i<this.bombs.length; i++) {
@@ -671,6 +738,9 @@ PlayState.prototype.update = function(game, dt) {
             this.bombs.splice(i--, 1);
             game.lives--;
             this.explosions.push({ x: this.ship.x, y: this.ship.y, age: 0 });
+            //  Being hit must be felt: a jolt, a red flash, sparks and an instant of stillness.
+            this.spawnPieces(this.ship.x, this.ship.y, 5, 90, '#ff3050');
+            game.impact(5, 0.35, '#ff3050', 0.08, 60);
             game.sounds.playSound('explosion');
         }
                 
@@ -697,7 +767,8 @@ PlayState.prototype.update = function(game, dt) {
 
     //  Check for failure
     if(game.lives <= 0) {
-        game.moveToState(new GameOverState());
+        this.startDying(game);
+        return;
     }
 
     //  Check for victory
@@ -735,8 +806,34 @@ PlayState.prototype.draw = function(game, dt, ctx) {
     //  Draw everything through the active theme (fixed hit boxes, themed look).
     var theme = game.theme;
     var now = (window.performance ? performance.now() : Date.now()) / 1000;
+
+    //  Screen shake: the whole scene is drawn slightly off, less and less.
+    var fx = game.fx, shaking = fx.shake > 0;
+    ctx.save();
+    if (shaking) {
+        var power = fx.mag * (fx.shake / fx.shakeTotal);
+        ctx.translate((Math.random() * 2 - 1) * power, (Math.random() * 2 - 1) * power);
+    }
+
     if (theme && window.NeonTheme) {
-        NeonTheme.draw(ctx, theme, 'ship', this.ship.x, this.ship.y, this.ship.width, this.ship.height, now);
+        if (!this.dying) {
+            //  The ship leans into the turn; a theme can bring its own left and right images.
+            var tilt = this.shipTilt, side = tilt < -0.5 ? 'shipLeft' : (tilt > 0.5 ? 'shipRight' : null);
+            var ownSide = side && theme.images && theme.images[side] && theme.images[side].length;
+            ctx.save();
+            ctx.translate(this.ship.x, this.ship.y);
+            if (!ownSide) { ctx.rotate(tilt * 0.26); ctx.scale(1 - Math.abs(tilt) * 0.16, 1); }
+            if (!(theme.images && theme.images.ship && theme.images.ship.length)) {
+                //  Engine flame of the built-in ship: it flickers, and trails to the side when banking.
+                var flame = 5 + 3 * Math.abs(Math.sin(now * 30)) + 3 * Math.abs(tilt);
+                ctx.fillStyle = theme.palette.bomb;
+                ctx.beginPath();
+                ctx.moveTo(-4, this.ship.height / 2); ctx.lineTo(4, this.ship.height / 2); ctx.lineTo(-tilt * 4, this.ship.height / 2 + flame);
+                ctx.closePath(); ctx.fill();
+            }
+            NeonTheme.draw(ctx, theme, ownSide ? side : 'ship', 0, 0, this.ship.width, this.ship.height, now);
+            ctx.restore();
+        }
         for(var i=0; i<this.invaders.length; i++) {
             var invader = this.invaders[i];
             NeonTheme.draw(ctx, theme, NeonTheme.enemyKind(invader.rank), invader.x, invader.y, invader.width, invader.height, now);
@@ -754,6 +851,16 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         for(var i=0; i<this.explosions.length; i++) {
             var ex = this.explosions[i];
             NeonTheme.drawExplosion(ctx, theme, ex.x, ex.y, ex.age, PlayState.EXPLOSION_TIME);
+        }
+        //  Debris.
+        for(var i=0; i<this.pieces.length; i++) {
+            var pc = this.pieces[i];
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - pc.age / pc.life);
+            ctx.translate(pc.x, pc.y); ctx.rotate(pc.rot);
+            ctx.fillStyle = pc.color; ctx.shadowColor = pc.color; ctx.shadowBlur = 6;
+            ctx.fillRect(-pc.size / 2, -pc.size / 2, pc.size, pc.size);
+            ctx.restore();
         }
     } else {
         //  Original look (no theme support loaded).
@@ -776,7 +883,9 @@ PlayState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     var info = T('hud.lives', { n: game.lives }, "Lives: " + game.lives);
     ctx.textAlign = "left";
+    if (game.lives <= 1) { ctx.fillStyle = Math.floor(now * 3) % 2 ? '#ff3050' : '#ff9aa8'; }      // last life: it pulses red
     ctx.fillText(info, game.gameBounds.left, textYpos);
+    ctx.fillStyle = '#ffffff';
     info = T('hud.score', { s: game.score, w: game.level }, "Score: " + game.score + ", Level: " + game.level);
     ctx.textAlign = "right";
     ctx.fillText(info, game.gameBounds.right, textYpos);
@@ -809,6 +918,21 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         ctx.textBaseline = "alphabetic";
     }
 
+    ctx.restore();      // end of the shaken scene
+
+    //  The scene darkens while the ship breaks apart, and an impact flashes over everything.
+    if (this.dying) {
+        ctx.fillStyle = 'rgba(0, 0, 0, ' + Math.min(0.55, this.dying.t * 0.5) + ')';
+        ctx.fillRect(0, 0, game.width, game.height);
+    }
+    if (fx.flash > 0) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(0.5, fx.flash * 2);
+        ctx.fillStyle = fx.flashColor;
+        ctx.fillRect(0, 0, game.width, game.height);
+        ctx.restore();
+    }
+
     //  If we're in debug mode, draw bounds.
     if(this.config.debugMode) {
         ctx.strokeStyle = '#ff0000';
@@ -837,6 +961,7 @@ PlayState.prototype.keyUp = function(game, keyCode) {
 };
 
 PlayState.prototype.fireRocket = function() {
+    if (this.dying) { return; }
     //  If we have no last rocket time, or the last rocket time 
     //  is older than the max rocket rate, we can fire.
     if(this.lastRocketTime === null || ((new Date()).valueOf() - this.lastRocketTime) > (1000 / this.rocketMaxFireRate))
