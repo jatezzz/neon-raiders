@@ -114,3 +114,14 @@ visitors each sharing player brings.
 
 `?debug=true&day=2026-11-20` plays the challenge of another day without touching the saved progress.
 `NeonDaily.sent` lists the events of the session, also when sending is off.
+
+## Reading the numbers
+
+The counters and the tagged visits end up in the portal's access log, so no analytics service is needed:
+
+```
+kubectl logs deploy/public-edge --since=168h | python3 tools/events_report.py
+```
+
+It prints, per day: runs started and finished, shares by method, clicks on the game-over links, visits to the
+portal by tag, and visits per shared result. Link-preview and search crawlers are left out.
