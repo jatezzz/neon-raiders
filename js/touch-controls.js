@@ -11,7 +11,7 @@
 (function () {
     'use strict';
 
-    var KEY = { LEFT: 37, RIGHT: 39, SPACE: 32 };
+    var KEY = { LEFT: 37, RIGHT: 39, SPACE: 32, UP: 38 };
     function isTouchDevice() {
         return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
             (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);

@@ -50,6 +50,16 @@ Player scores are never marked verified by the game alone.
 Portals with their own game-over screen receive the outcome too:
 `PortalSDK.gameOver(score, { level, share, outcome, headline, joke })`.
 
+## Turbo
+
+The up arrow, or the bolt button on a phone, gives a short burst: for 1.2 seconds the ship fires 2.5 times as often
+and its rockets fly 1.8 times as fast (they are drawn longer and yellow). Then it recharges for 5 seconds, counted from
+the press; the thin gauge under the ship shows it. Holding the key does not extend it: the choice is when to use it.
+
+It is the same for every player and every device, so daily scores stay comparable. The numbers are in the game
+config (`turboSeconds`, `turboCooldown`, `turboFireRate`, `turboRocketSpeed`). The auto-player's verified 220 was
+scored without turbo.
+
 ## The bonus ship
 
 - It crosses the top of the screen 6 to 12 seconds into a wave, then every 12 to 20 seconds.
@@ -121,7 +131,7 @@ name, the challenge day, the host the game runs on, whether it is embedded, the 
 | `arrive` | The page was opened from a tagged link | `src`, `med` (the link's `utm_source` and `utm_medium`) |
 | `run` | A run starts | `n` attempt number today, `sh` 1 on a shared challenge, `dp` how many different days this browser has played, `st` current streak |
 | `bonus` | A bonus ship is hit | `w` wave |
-| `over` | A run ends | `s` score, `w` wave, `b` bonus ships, `n` attempt, `vs` score to beat, `o` outcome (`win`, `tie`, `lose`) |
+| `over` | A run ends | `s` score, `w` wave, `b` bonus ships, `n` attempt, `vs` score to beat, `o` outcome (`win`, `tie`, `lose`), `tb` times the turbo was used |
 | `share_tap` | The share button is pressed | |
 | `share` | A result was shared | `how`: `native`, `whatsapp` or `copy` |
 | `rec` | The recommended game is opened | `to` game |

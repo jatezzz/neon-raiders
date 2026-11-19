@@ -25,6 +25,7 @@
 var KEY_LEFT = 37;
 var KEY_RIGHT = 39;
 var KEY_SPACE = 32;
+var KEY_UP = 38;
 
 //  Text in the player's language (js/i18n.js); the English fallback keeps this file usable alone.
 function T(key, vars, fallback) {
@@ -60,6 +61,11 @@ function Game() {
         bonusNextDelay: [12, 20],
         bonusBannerSeconds: 2.5,
         introSeconds: 2,
+        //  Turbo (arrow up, or the bolt button): for an instant the ship fires faster and its rockets fly faster.
+        turboSeconds: 1.2,
+        turboCooldown: 5,
+        turboFireRate: 2.5,
+        turboRocketSpeed: 1.8,
         limitLevelIncrease: 25
     };
 
@@ -450,6 +456,8 @@ PlayState.prototype.enter = function(game) {
     this.pieces = [];           // debris of the ship (looks only)
     this.dying = null;          // the last second and a half of a run, before the result
     this.shipTilt = 0;          // -1 banking left ... 1 banking right
+    this.turbo = 0;             // seconds of turbo left
+    this.turboWait = 0;         // seconds until the turbo can be used again
     this.lastShipX = this.ship.x;
 
     //  Setup initial state.
@@ -540,6 +548,8 @@ PlayState.prototype.update = function(game, dt) {
         return;
     }
     if (fx.hitstop > 0) { fx.hitstop -= dt; return; }       // the instant of an impact
+    if (this.turbo > 0) { this.turbo -= dt; }
+    if (this.turboWait > 0) { this.turboWait -= dt; }
     
     //  If the left or right arrow keys are pressed, move
     //  the ship. Check this on ticks rather than via a keydown
@@ -844,9 +854,20 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         if (this.bonus) {
             NeonTheme.draw(ctx, theme, 'bonus', this.bonus.x, this.bonus.y, this.bonus.width, this.bonus.height, now);
         }
-        ctx.fillStyle = theme.palette.rocket;
         for(var i=0; i<this.rockets.length; i++) {
-            ctx.fillRect(this.rockets[i].x, this.rockets[i].y - 3, 2, 6);
+            var shot = this.rockets[i];
+            ctx.fillStyle = shot.boosted ? theme.palette.bomb : theme.palette.rocket;
+            ctx.fillRect(shot.x - (shot.boosted ? 1 : 0), shot.y - (shot.boosted ? 6 : 3), shot.boosted ? 3 : 2, shot.boosted ? 12 : 6);
+        }
+        //  Turbo gauge under the ship: full when ready, emptying while it burns, refilling while it recharges.
+        if (!this.dying) {
+            var gaugeW = 26, gx = this.ship.x - gaugeW / 2, gy = this.ship.y + this.ship.height / 2 + 4;
+            var burning = this.turbo > 0;
+            var level = burning ? this.turbo / this.config.turboSeconds : 1 - Math.max(0, this.turboWait) / this.config.turboCooldown;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+            ctx.fillRect(gx, gy, gaugeW, 2);
+            ctx.fillStyle = burning ? theme.palette.bomb : (this.turboWait > 0 ? '#7a8090' : theme.palette.ship);
+            ctx.fillRect(gx, gy, gaugeW * Math.max(0, Math.min(1, level)), 2);
         }
         for(var i=0; i<this.explosions.length; i++) {
             var ex = this.explosions[i];
@@ -950,6 +971,9 @@ PlayState.prototype.keyDown = function(game, keyCode) {
         //  Fire!
         this.fireRocket();
     }
+    if(keyCode == KEY_UP) {
+        this.startTurbo(game);
+    }
     if(keyCode == 80) {
         //  Push the pause state.
         game.pushState(new PauseState());
@@ -960,14 +984,27 @@ PlayState.prototype.keyUp = function(game, keyCode) {
 
 };
 
+//  Turbo: a short burst of faster fire. It recharges, so it is a choice of when, not something to hold down.
+PlayState.prototype.startTurbo = function(game) {
+    if (this.dying || this.turboWait > 0) { return false; }
+    this.turbo = this.config.turboSeconds;
+    this.turboWait = this.config.turboCooldown;
+    game.runStats.turbos = (game.runStats.turbos || 0) + 1;
+    return true;
+};
+
 PlayState.prototype.fireRocket = function() {
     if (this.dying) { return; }
+    var boosted = this.turbo > 0;
+    var rate = this.rocketMaxFireRate * (boosted ? this.config.turboFireRate : 1);
     //  If we have no last rocket time, or the last rocket time 
     //  is older than the max rocket rate, we can fire.
-    if(this.lastRocketTime === null || ((new Date()).valueOf() - this.lastRocketTime) > (1000 / this.rocketMaxFireRate))
+    if(this.lastRocketTime === null || ((new Date()).valueOf() - this.lastRocketTime) > (1000 / rate))
     {   
         //  Add a rocket.
-        this.rockets.push(new Rocket(this.ship.x, this.ship.y - 12, this.config.rocketVelocity));
+        var rocket = new Rocket(this.ship.x, this.ship.y - 12, this.config.rocketVelocity * (boosted ? this.config.turboRocketSpeed : 1));
+        rocket.boosted = boosted;
+        this.rockets.push(rocket);
         this.lastRocketTime = (new Date()).valueOf();
 
         //  Play the 'shoot' sound.

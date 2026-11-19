@@ -19,8 +19,8 @@
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
         <meta name="twitter:card" content="summary_large_image">
-        <link rel="stylesheet" type="text/css" href="css/core.css?v=20261118h">
-        <link rel="stylesheet" type="text/css" href="css/typeography.css?v=20261118h">
+        <link rel="stylesheet" type="text/css" href="css/core.css?v=20261119a">
+        <link rel="stylesheet" type="text/css" href="css/typeography.css?v=20261119a">
         <style>
     
             /* Styling needed for a fullscreen canvas and no scrollbars. */
@@ -82,6 +82,14 @@
             }
             body.touch #touchpad { display: flex; justify-content: space-between; align-items: center; }
             #touchpad .move { display: flex; gap: 14px; }
+            #touchpad .act { display: flex; gap: 12px; align-items: center; }
+            #touchpad button.turbo {
+                width: 58px; height: 58px;
+                border-color: #ffdc3c; color: #ffdc3c;
+                background: rgba(255, 220, 60, 0.12);
+                font-size: 24px;
+                box-shadow: 0 0 12px rgba(255, 220, 60, 0.5);
+            }
             #touchpad button {
                 width: 76px; height: 76px;
                 border-radius: 50%;
@@ -197,6 +205,7 @@
                 body.touch #info { display: none; }
                 body.touch #touchpad { top: 0; align-items: flex-end; }
                 body.touch #touchpad .move { flex-direction: column; }
+                body.touch #touchpad .act { flex-direction: column; }
             }
         </style>
     </head>
@@ -245,15 +254,18 @@
                 <button type="button" data-key="LEFT" aria-label="Move left">&#9664;</button>
                 <button type="button" data-key="RIGHT" aria-label="Move right">&#9654;</button>
             </div>
-            <button type="button" class="fire" data-key="SPACE" aria-label="Fire" data-i18n="pad.fire">FUEGO</button>
+            <div class="act">
+                <button type="button" class="turbo" data-key="UP" aria-label="Turbo">&#9889;</button>
+                <button type="button" class="fire" data-key="SPACE" aria-label="Fire" data-i18n="pad.fire">FUEGO</button>
+            </div>
         </div>
 
-        <script src="js/starfield.js?v=20261118h"></script>
-        <script src="js/i18n.js?v=20261118h"></script>
-        <script src="js/theme.js?v=20261118h"></script>
-        <script src="js/daily.js?v=20261118h"></script>
-        <script src="js/spaceinvaders.js?v=20261118h"></script>
-        <script src="js/touch-controls.js?v=20261118h"></script>
+        <script src="js/starfield.js?v=20261119a"></script>
+        <script src="js/i18n.js?v=20261119a"></script>
+        <script src="js/theme.js?v=20261119a"></script>
+        <script src="js/daily.js?v=20261119a"></script>
+        <script src="js/spaceinvaders.js?v=20261119a"></script>
+        <script src="js/touch-controls.js?v=20261119a"></script>
         <script>
 
             //  Texts in the player's language (Spanish by default).
@@ -292,7 +304,7 @@
             window.addEventListener("keydown", function keydown(e) {
                 var keycode = e.which || window.event.keycode;
                 //  Supress further processing of left/right/space (37/29/32)
-                if(keycode == 37 || keycode == 39 || keycode == 32) {
+                if(keycode == 37 || keycode == 39 || keycode == 32 || keycode == 38) {
                     e.preventDefault();
                 }
                 game.keyDown(keycode);

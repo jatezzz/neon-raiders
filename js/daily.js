@@ -312,14 +312,15 @@
 
     //  Called by the game when a run ends.
     function onGameOver(game) {
-        var result = { score: game.score, wave: game.level, kills: game.runStats.kills, bonus: game.runStats.bonus };
+        var result = { score: game.score, wave: game.level, kills: game.runStats.kills, bonus: game.runStats.bonus,
+                       turbos: game.runStats.turbos || 0 };
         var summary = recordRun(result);
         var o = outcome(result.score);
         //  One of three lines per outcome, picked by the score so the same result always reads the same.
         var joke = o ? I.t('joke.' + o + '.' + target.by + '.' + (result.score % 3)) : '';
         var headline = o ? I.t('over.' + o, { t: I.number(target.score), n: I.number(Math.abs(result.score - target.score)) }) : '';
         lastShare = { text: shareText(result, summary), url: shareUrl(result.score), outcome: o, headline: headline, joke: joke };
-        track('over', { s: result.score, w: result.wave, b: result.bonus, n: summary.attempts, o: o || '', vs: target ? target.score : '' });
+        track('over', { s: result.score, w: result.wave, b: result.bonus, n: summary.attempts, o: o || '', vs: target ? target.score : '', tb: result.turbos });
         //  A portal that embeds the game with its SDK shows its own game-over screen over this one.
         if (!overlay || (embedded && window.PortalSDK)) { return summary; }
 
