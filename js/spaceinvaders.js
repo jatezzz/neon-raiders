@@ -26,6 +26,8 @@ var KEY_LEFT = 37;
 var KEY_RIGHT = 39;
 var KEY_SPACE = 32;
 var KEY_UP = 38;
+var KEY_ESC = 27;
+var KEY_P = 80;
 
 //  Text in the player's language (js/i18n.js); the English fallback keeps this file usable alone.
 function T(key, vars, fallback) {
@@ -137,7 +139,38 @@ Game.prototype.moveToState = function(state) {
    //  Set the current state.
    this.stateStack.pop();
    this.stateStack.push(state);
+   this.announce();
  };
+
+//  Tell the page which screen is showing (it shows or hides the pause button with it).
+Game.prototype.announce = function() {
+    try {
+        var state = this.currentState();
+        document.body.setAttribute('data-state', state ? state.constructor.name : '');
+    } catch (err) { /* no page around the game */ }
+};
+
+//  Pause and resume. Esc or P on a keyboard, the pause button on a phone, a portal's own pause button, or the page
+//  going to the background. Only a run in progress can be paused.
+Game.prototype.pause = function() {
+    if (!(this.currentState() instanceof PlayState)) { return false; }
+    this.fx.shake = 0; this.fx.flash = 0;
+    this.pressedKeys = {};
+    this.pushState(new PauseState());
+    return true;
+};
+Game.prototype.resume = function() {
+    if (!(this.currentState() instanceof PauseState)) { return false; }
+    this.popState();
+    this.lastTick = undefined;          // no time passed while paused
+    return true;
+};
+//  A portal that embeds the game has its own pause button and screen: ask it, and it answers with PAUSE or RESUME.
+Game.prototype.requestPause = function(paused) {
+    var sdk = window.PortalSDK;
+    if (sdk && sdk.pause && sdk.resume) { if (paused) { sdk.pause(); } else { sdk.resume(); } }
+    return paused ? this.pause() : this.resume();
+};
 
 //  An impact: shake the screen, flash it, freeze the action for an instant and buzz the phone.
 //  People who ask their system for less motion get no shake and no flash.
@@ -169,6 +202,13 @@ Game.prototype.start = function() {
 
     //  Move into the 'welcome' state.
     this.moveToState(new WelcomeState());
+
+    //  A portal's own pause button pauses and resumes the game too.
+    var self = this;
+    if (window.PortalSDK && window.PortalSDK.on) {
+        window.PortalSDK.on('PAUSE', function () { self.pause(); });
+        window.PortalSDK.on('RESUME', function () { self.resume(); });
+    }
 
     //  Set the game variables.
     this.lives = 3;
@@ -237,6 +277,7 @@ Game.prototype.pushState = function(state) {
     }
     //  Set the current state.
     this.stateStack.push(state);
+    this.announce();
 };
 
 Game.prototype.popState = function() {
@@ -250,6 +291,7 @@ Game.prototype.popState = function() {
         //  Set the current state.
         this.stateStack.pop();
     }
+    this.announce();
 };
 
 //  The stop function stops the game.
@@ -974,9 +1016,8 @@ PlayState.prototype.keyDown = function(game, keyCode) {
     if(keyCode == KEY_UP) {
         this.startTurbo(game);
     }
-    if(keyCode == 80) {
-        //  Push the pause state.
-        game.pushState(new PauseState());
+    if(keyCode == KEY_P || keyCode == KEY_ESC) {
+        game.requestPause(true);
     }
 };
 
@@ -1018,22 +1059,30 @@ function PauseState() {
 
 PauseState.prototype.keyDown = function(game, keyCode) {
 
-    if(keyCode == 80) {
-        //  Pop the pause state.
-        game.popState();
+    //  The same keys resume, and so does Space or a tap on the game.
+    if(keyCode == KEY_P || keyCode == KEY_ESC || keyCode == KEY_SPACE) {
+        game.requestPause(false);
     }
 };
 
 PauseState.prototype.draw = function(game, dt, ctx) {
 
-    //  Clear the background.
-    ctx.clearRect(0, 0, game.width, game.height);
+    //  The frozen run stays in sight, dimmed, so the player sees where they left it.
+    var below = game.stateStack[game.stateStack.length - 2];
+    if (below && below.draw) { below.draw(game, dt, ctx); } else { ctx.clearRect(0, 0, game.width, game.height); }
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, game.width, game.height);
 
-    ctx.font="14px Arial";
+    ctx.font="30px Arial";
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    ctx.fillText(T('paused', null, "Paused"), game.width / 2, game.height/2);
+    ctx.fillText(T('paused', null, "Paused"), game.width / 2, game.height/2 - 14);
+    ctx.font="14px Arial";
+    ctx.fillStyle = '#b0b0c0';
+    var onTouch = document.body && document.body.classList.contains('touch');
+    ctx.fillText(T(onTouch ? 'paused.hint.touch' : 'paused.hint', null, "Esc or P to continue"), game.width / 2, game.height/2 + 18);
+    ctx.textBaseline="alphabetic";
     return;
 };
 

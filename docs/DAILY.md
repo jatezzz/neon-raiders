@@ -60,6 +60,17 @@ It is the same for every player and every device, so daily scores stay comparabl
 config (`turboSeconds`, `turboCooldown`, `turboFireRate`, `turboRocketSpeed`). The auto-player's verified 220 was
 scored without turbo.
 
+## Pause
+
+- **Keyboard:** Esc or P pauses and resumes; Space resumes too.
+- **Phone:** the button on the top-right corner of the game pauses and resumes; a tap on the game resumes.
+- **By itself:** the game pauses when the page goes to the background (another app, another tab).
+- **Inside a portal:** the portal's own pause button pauses the game (`PortalSDK.on('PAUSE' / 'RESUME')`), and Esc
+  asks the portal to pause, so both stay in step. The game's corner button is hidden there.
+
+Only a run in progress can be paused. The frozen run stays in sight, dimmed. No game time passes while paused:
+the turbo, the bonus-ship schedule and the enemies continue exactly where they were.
+
 ## The bonus ship
 
 - It crosses the top of the screen 6 to 12 seconds into a wave, then every 12 to 20 seconds.
