@@ -9,7 +9,7 @@ CSS y HTML puros: sin frameworks, sin paso de compilación, sin registro.
 *English: a new arcade challenge every day, the same for everyone. Open-source browser game in plain JavaScript.
 Add `?lang=en` for English.*
 
-![Neon Raiders](og.png)
+![Neon Raiders](og.jpg)
 
 ## Qué tiene
 
