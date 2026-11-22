@@ -136,16 +136,33 @@
         ctx.shadowBlur = 6;
         var l = x - w / 2, t = y - h / 2;
         if (kind === 'ship') {
-            ctx.beginPath();
-            ctx.moveTo(x, t); ctx.lineTo(l + w, t + h); ctx.lineTo(l, t + h); ctx.closePath(); ctx.fill();
+            //  A faceted chrome dart, like the cover's ship: bright edges, a darker spine, a glow under the engines.
+            var g = ctx.createLinearGradient(l, 0, l + w, 0);
+            g.addColorStop(0, color); g.addColorStop(0.5, '#ffffff'); g.addColorStop(1, color);
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.moveTo(x, t); ctx.lineTo(l + w, t + h); ctx.lineTo(x, t + h * 0.78); ctx.lineTo(l, t + h); ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(5,6,15,0.55)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x, t + 2); ctx.lineTo(x, t + h * 0.76); ctx.stroke();
+            ctx.fillStyle = '#ffdc3c'; ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(timeSec * 12));
+            ctx.beginPath(); ctx.ellipse(x, t + h * 0.92, w * 0.12, h * 0.18, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
         } else if (kind === 'enemyA' || kind === 'enemyB' || kind === 'enemyC') {
-            var open = Math.floor(timeSec * 2) % 2 === 0;       // simple 2-frame "legs" animation
-            ctx.fillRect(l + 2, t + 2, w - 4, h - 6);
-            ctx.fillStyle = '#000';
-            ctx.fillRect(l + w * 0.28, t + 5, 3, 3); ctx.fillRect(l + w * 0.62, t + 5, 3, 3);
-            ctx.fillStyle = color;
-            var leg = open ? 0 : 2;
-            ctx.fillRect(l + leg, t + h - 4, 3, 4); ctx.fillRect(l + w - 3 - leg, t + h - 4, 3, 4);
+            //  Faceted drones with two eyes (the cover's design, not the classic arcade aliens):
+            //  A diamond, B hexagon, C chevron. They breathe instead of walking.
+            var pulse = 1 + 0.06 * Math.sin(timeSec * 4 + x * 0.05);
+            var cx = x, cy = y, rx = w / 2 * pulse, ry = h / 2 * pulse;
+            ctx.beginPath();
+            if (kind === 'enemyA') { ctx.moveTo(cx, cy - ry); ctx.lineTo(cx + rx, cy); ctx.lineTo(cx, cy + ry); ctx.lineTo(cx - rx, cy); }
+            else if (kind === 'enemyB') { for (var k6 = 0; k6 < 6; k6++) { var a6 = Math.PI / 6 + k6 * Math.PI / 3; ctx[k6 ? 'lineTo' : 'moveTo'](cx + Math.cos(a6) * rx, cy + Math.sin(a6) * ry); } }
+            else { ctx.moveTo(cx - rx, cy - ry); ctx.lineTo(cx, cy - ry * 0.2); ctx.lineTo(cx + rx, cy - ry); ctx.lineTo(cx + rx * 0.55, cy + ry); ctx.lineTo(cx, cy + ry * 0.45); ctx.lineTo(cx - rx * 0.55, cy + ry); }
+            ctx.closePath(); ctx.fill();
+            ctx.shadowBlur = 0;
+            var gl = ctx.createLinearGradient(0, cy - ry, 0, cy + ry);
+            gl.addColorStop(0, 'rgba(255,255,255,0.45)'); gl.addColorStop(0.5, 'rgba(255,255,255,0)'); gl.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = gl; ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fillStyle = '#05060f';
+            ctx.fillRect(cx - w * 0.22, cy - 1.5, 3, 3); ctx.fillRect(cx + w * 0.22 - 3, cy - 1.5, 3, 3);
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(cx - w * 0.22 + 1, cy - 1, 1, 1); ctx.fillRect(cx + w * 0.22 - 2, cy - 1, 1, 1);
         } else if (kind === 'bonus') {
             //  A small saucer: dome, body and three lights.
             ctx.beginPath(); ctx.ellipse(x, t + h * 0.62, w / 2, h * 0.36, 0, 0, Math.PI * 2); ctx.fill();
