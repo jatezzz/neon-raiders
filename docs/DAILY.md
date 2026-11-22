@@ -33,9 +33,9 @@ Whoever opens that link plays **that** challenge, on any later day and in any ti
 
 ## A score to beat: challenge someone
 
-A link can carry a score to beat: `...?d=2026-11-18&vs=220` (and `&by=bot` when the score is the auto-player's).
+A link can carry a score to beat: `...?d=2026-11-18&vs=915` (and `&by=bot` when the score is the auto-player's).
 
-- The goal is shown on the title screen and stays in the score line during the whole run ("Meta: 220"); it turns
+- The goal is shown on the title screen and stays in the score line during the whole run ("Meta: 915"); it turns
   green when passed.
 - The result card is different for a **win**, a **tie** and a **loss**, each with its own line. The line is picked by
   the score, so the same result always reads the same.
@@ -44,7 +44,8 @@ A link can carry a score to beat: `...?d=2026-11-18&vs=220` (and `&by=bot` when 
 
 **Declared and verified scores.** Anybody can type a number in a link, so a score that arrives in a link is only
 *declared*, and the title screen says so. It is shown as *verified* only when it matches a run on record in
-`VERIFIED` (`js/daily.js`): today that is the auto-player's 220 on challenge #1, recorded twice with the same result.
+`VERIFIED` (`js/daily.js`): today that is the auto-player's 915 on challenge #1: the best of five recorded runs without turbo on 2026-11-22
+(915, 885, 720, 680 and 470). An earlier build scored 220; that record was replaced.
 Player scores are never marked verified by the game alone.
 
 Portals with their own game-over screen receive the outcome too:
@@ -57,7 +58,7 @@ and its rockets fly 1.8 times as fast (they are drawn longer and yellow). Then i
 the press; the thin gauge under the ship shows it. Holding the key does not extend it: the choice is when to use it.
 
 It is the same for every player and every device, so daily scores stay comparable. The numbers are in the game
-config (`turboSeconds`, `turboCooldown`, `turboFireRate`, `turboRocketSpeed`). The auto-player's verified 220 was
+config (`turboSeconds`, `turboCooldown`, `turboFireRate`, `turboRocketSpeed`). The auto-player's verified 915 was
 scored without turbo.
 
 ## Pause

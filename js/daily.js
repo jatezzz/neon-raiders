@@ -72,11 +72,11 @@
     function today() { return forcedDay || sharedDay || dayKey(); }
     function otherDay() { return !!(forcedDay || sharedDay); }
 
-    //  A link can also carry a score to beat (?vs=220, and &by=bot when the score is the auto-player's).
+    //  A link can also carry a score to beat (?vs=915, and &by=bot when the score is the auto-player's).
     //  A score that arrives in a link is only DECLARED: anybody can type a number in a link. It counts as VERIFIED
     //  only when it matches a run on record below (a recorded run that can be played back or repeated).
     var VERIFIED = [
-        { day: '2026-11-18', score: 220, by: 'bot' }      // the auto-player on challenge #1: recorded twice, same score
+        { day: '2026-11-18', score: 915, by: 'bot' }      // the auto-player on challenge #1, without turbo: its best of five recorded runs (2026-11-22)
     ];
     function readTarget() {
         var search = window.location.search;
