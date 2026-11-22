@@ -435,8 +435,10 @@ GameOverState.prototype.enter = function(game) {
     //  The portal shows its own game-over screen, so it also gets the text to share.
     if (window.PortalSDK && window.PortalSDK.gameOver) {
         var last = window.NeonDaily ? window.NeonDaily.lastResult() : null;
-        window.PortalSDK.gameOver(game.score, { level: game.level, share: share, outcome: last && last.outcome,
-            headline: last && last.headline, joke: last && last.joke });
+        var sdkArgs = [game.score, { level: game.level, share: share, outcome: last && last.outcome,
+            headline: last && last.headline, joke: last && last.joke }];
+        //  Let the shared celebration play over the game before the portal covers it with its own screen.
+        setTimeout(function () { window.PortalSDK.gameOver.apply(window.PortalSDK, sdkArgs); }, window.NeonFx ? window.NeonFx.portalDelay() : 0);
     }
 };
 

@@ -13,6 +13,10 @@
 
     var STRINGS = {
         es: {
+            'rec.neon-command': 'Estrategia: gánale a mi bot.',
+            'rec.neon-stack': 'Un toque: apila la torre del día.',
+            'rec.neon-bricks': 'Rompe ladrillos: un muro nuevo cada día.',
+            'rec.neon-raiders': 'Arcade de naves: supera al bot.',
             'page.title': 'Neon Raiders: reto diario',
             'title.start': 'Pulsa Espacio o toca para empezar',
             'title.daily': 'Reto diario #{n} · {date}',
@@ -95,6 +99,10 @@
             'rec.hauberk': 'Roguelike clásico: cada piso es distinto.'
         },
         en: {
+            'rec.neon-command': 'Strategy: beat my bot.',
+            'rec.neon-stack': 'One tap: stack the tower of the day.',
+            'rec.neon-bricks': 'Brick breaker: a new wall every day.',
+            'rec.neon-raiders': 'Space shooter: beat the bot.',
             'page.title': 'Neon Raiders: daily challenge',
             'title.start': 'Press Space or tap to start',
             'title.daily': 'Daily challenge #{n} · {date}',
