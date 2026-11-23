@@ -199,6 +199,7 @@ Game.prototype.newRun = function() {
 
 //  Start the Game.
 Game.prototype.start = function() {
+    if (window.NeonStage) { window.NeonStage.event('run'); }
 
     //  Move into the 'welcome' state.
     this.moveToState(new WelcomeState());
@@ -791,6 +792,7 @@ PlayState.prototype.update = function(game, dt) {
                 bomb.y >= (this.ship.y - this.ship.height/2) && bomb.y <= (this.ship.y + this.ship.height/2)) {
             this.bombs.splice(i--, 1);
             game.lives--;
+            if (window.NeonStage) { window.NeonStage.event('hit'); }
             this.explosions.push({ x: this.ship.x, y: this.ship.y, age: 0 });
             //  Being hit must be felt: a jolt, a red flash, sparks and an instant of stillness.
             this.spawnPieces(this.ship.x, this.ship.y, 5, 90, '#ff3050');
@@ -829,6 +831,7 @@ PlayState.prototype.update = function(game, dt) {
     if(this.invaders.length === 0) {
         game.score += this.level * 50;
         game.level += 1;
+        if (window.NeonStage) { window.NeonStage.event('wave', { level: game.level }); }
         game.moveToState(new LevelIntroState(game.level));
     }
 };
@@ -838,6 +841,7 @@ PlayState.EXPLOSION_TIME = 0.35;   // seconds
 //  A rocket hit the bonus ship: extra points and, if the theme has one, the topic of the day.
 PlayState.prototype.hitBonus = function(game) {
     game.score += this.config.pointsPerBonus;
+    if (window.NeonStage) { window.NeonStage.event('bonus'); }
     game.runStats.bonus += 1;
     this.explosions.push({ x: this.bonus.x, y: this.bonus.y, age: 0 });
     var topic = game.theme && game.theme.texts && game.theme.texts.topic;
@@ -1273,6 +1277,11 @@ Sounds.prototype.loadSound = function(name, url) {
 };
 
 Sounds.prototype.playSound = function(name) {
+
+    //  The Neon universe's own sound kit (neon-stage.js) plays it when it is there; the samples are the fallback.
+    if (window.NeonStage && window.NeonStage.sfx(name)) {
+        return;
+    }
 
     //  If we've not got the sound, don't bother playing it.
     if(this.sounds[name] === undefined || this.sounds[name] === null || this.mute === true) {

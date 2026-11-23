@@ -82,11 +82,10 @@ Starfield.prototype.draw = function() {
 	var ctx = this.canvas.getContext("2d");
 
 	//	Draw the background.
- 	ctx.fillStyle = '#000000';
-	ctx.fillRect(0, 0, this.width, this.height);
+ 	ctx.clearRect(0, 0, this.width, this.height);      // the Neon stage (neon-stage.js) shows through
 
 	//	Draw stars.
-	ctx.fillStyle = '#ffffff';
+	ctx.fillStyle = 'rgba(200,235,255,0.85)';
 	for(var i=0; i<this.stars.length;i++) {
 		var star = this.stars[i];
 		ctx.fillRect(star.x, star.y, star.size, star.size);
