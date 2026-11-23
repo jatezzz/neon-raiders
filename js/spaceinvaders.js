@@ -363,6 +363,12 @@ WelcomeState.prototype.update = function (game, dt) {
 
 };
 
+//  Text that reads on the Neon stage: a dark outline around every glyph (neon-stage.js); plain text without it.
+function neonFill(ctx, text, x, y, maxW) {
+    var nt = window.NeonStage && window.NeonStage.text;
+    if (nt) { nt.outlined(ctx, text, x, y, maxW); } else if (maxW) { ctx.fillText(text, x, y, maxW); } else { ctx.fillText(text, x, y); }
+}
+
 WelcomeState.prototype.draw = function(game, dt, ctx) {
 
     //  Clear the background.
@@ -374,40 +380,46 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     ctx.textAlign="center"; 
     var texts = (game.theme && game.theme.texts) || { title: "Neon Raiders", subtitle: "" };
     var cx = game.width / 2, cy = game.height / 2;
-    ctx.fillText(texts.title, cx, cy - 70);
+    var nt = window.NeonStage && window.NeonStage.text;
+    //  The game's 3D logo (Blender, img/logo.png) when the theme keeps the name; chrome words otherwise or until it loads.
+    var lh = Math.min(140, cy - 50);
+    if (!(nt && texts.title === 'Neon Raiders' && nt.logo(ctx, cx, cy - 40 - lh / 2, lh * 2))) {
+        if (nt) { nt.chrome(ctx, texts.title, cx, cy - 70, 30, '#ff00c8'); } else { ctx.fillText(texts.title, cx, cy - 70); }
+    }
     var daily = window.NeonDaily, i18n = window.NeonI18n;
     if (daily && i18n) {
         //  Today's challenge, the same for everyone.
         ctx.font="16px Arial";
         ctx.fillStyle = (game.theme && game.theme.palette.ship) || '#00f0ff';
-        ctx.fillText(i18n.t(daily.sharedDay ? 'title.shared' : 'title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
+        neonFill(ctx, i18n.t(daily.sharedDay ? 'title.shared' : 'title.daily', { n: daily.challengeNumber(), date: i18n.shortDate(daily.today()) }), cx, cy - 36);
     }
     ctx.font="16px Arial";
     if (daily && i18n && daily.target) {
         //  A score to beat came with the link: it is the goal of this run.
         ctx.fillStyle = '#ffdc3c';
-        ctx.fillText(i18n.t('target.title.' + daily.target.by, { t: i18n.number(daily.target.score) }), cx, cy - 12);
+        neonFill(ctx, i18n.t('target.title.' + daily.target.by, { t: i18n.number(daily.target.score) }), cx, cy - 12);
         ctx.font="11px Arial";
         ctx.fillStyle = '#b0b0c0';
-        ctx.fillText(i18n.t(daily.target.verified ? 'target.verified' : 'target.declared'), cx, cy + 3);
+        neonFill(ctx, i18n.t(daily.target.verified ? 'target.verified' : 'target.declared'), cx, cy + 3);
         ctx.font="16px Arial";
     } else if (texts.subtitle) {
         ctx.fillStyle = (game.theme && game.theme.palette.enemyA) || '#ffffff';
-        ctx.fillText(texts.subtitle, cx, cy - 12);
+        neonFill(ctx, texts.subtitle, cx, cy - 12);
     }
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(T('title.start', null, "Press 'Space' or touch to start."), cx, cy + 20);
+    if (nt) { nt.plate(ctx, T('title.start', null, "Press 'Space' or touch to start."), cx, cy + 22, 15, '#ffffff', Math.abs(Math.sin(Date.now() / 330))); }
+    else { ctx.fillText(T('title.start', null, "Press 'Space' or touch to start."), cx, cy + 20); }
     if (daily && i18n) {
         var progress = daily.todayProgress(), streak = daily.currentStreak();
         ctx.font="13px Arial";
         ctx.fillStyle = '#b0b0c0';
         if (progress.attempts > 0) {
-            ctx.fillText(i18n.t('title.status', { best: i18n.number(progress.best), streak: streak }), cx, cy + 50);
+            neonFill(ctx, i18n.t('title.status', { best: i18n.number(progress.best), streak: streak }), cx, cy + 50);
         } else if (streak > 0) {
-            ctx.fillText(i18n.t('title.streak', { streak: streak }), cx, cy + 50);
+            neonFill(ctx, i18n.t('title.streak', { streak: streak }), cx, cy + 50);
         }
         if (!daily.onPortal) {
-            ctx.fillText(i18n.t('title.more', { host: daily.CONFIG.portalHost }), cx, cy + 72);
+            neonFill(ctx, i18n.t('title.more', { host: daily.CONFIG.portalHost }), cx, cy + 72);
         }
     }
 };
@@ -457,11 +469,11 @@ GameOverState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="center"; 
     ctx.textAlign="center"; 
-    ctx.fillText("Game Over!", game.width / 2, game.height/2 - 40); 
+    neonFill(ctx, "Game Over!", game.width / 2, game.height/2 - 40); 
     ctx.font="16px Arial";
-    ctx.fillText("You scored " + game.score + " and got to level " + game.level, game.width / 2, game.height/2);
+    neonFill(ctx, "You scored " + game.score + " and got to level " + game.level, game.width / 2, game.height/2);
     ctx.font="16px Arial";
-    ctx.fillText("Press 'Space' to play again.", game.width / 2, game.height/2 + 40);   
+    neonFill(ctx, "Press 'Space' to play again.", game.width / 2, game.height/2 + 40);   
 };
 
 GameOverState.prototype.keyDown = function(game, keyCode) {
@@ -953,11 +965,11 @@ PlayState.prototype.draw = function(game, dt, ctx) {
     var info = T('hud.lives', { n: game.lives }, "Lives: " + game.lives);
     ctx.textAlign = "left";
     if (game.lives <= 1) { ctx.fillStyle = Math.floor(now * 3) % 2 ? '#ff3050' : '#ff9aa8'; }      // last life: it pulses red
-    ctx.fillText(info, game.gameBounds.left, textYpos);
+    neonFill(ctx, info, game.gameBounds.left, textYpos);
     ctx.fillStyle = '#ffffff';
     info = T('hud.score', { s: game.score, w: game.level }, "Score: " + game.score + ", Level: " + game.level);
     ctx.textAlign = "right";
-    ctx.fillText(info, game.gameBounds.right, textYpos);
+    neonFill(ctx, info, game.gameBounds.right, textYpos);
 
     //  The score to beat stays in sight for the whole run, and turns green once passed.
     var goal = window.NeonDaily && window.NeonDaily.target;
@@ -965,7 +977,7 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         var passed = game.score > goal.score;
         ctx.textAlign = "center";
         ctx.fillStyle = passed ? '#00ff9c' : '#ffdc3c';
-        ctx.fillText((passed ? '\u2714 ' : '') + window.NeonI18n.t('target.hud', { t: goal.score }),
+        neonFill(ctx, (passed ? '\u2714 ' : '') + window.NeonI18n.t('target.hud', { t: goal.score }),
             game.gameBounds.left + (game.gameBounds.right - game.gameBounds.left) * 0.4, textYpos);
         if (passed && !this.goalAnnounced) {
             this.goalAnnounced = true;
@@ -982,7 +994,7 @@ PlayState.prototype.draw = function(game, dt, ctx) {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = (theme && theme.palette.bonus) || '#ffdc3c';
-        ctx.fillText(this.banner.text, game.width / 2, game.gameBounds.top - 16, game.gameBounds.right - game.gameBounds.left);
+        neonFill(ctx, this.banner.text, game.width / 2, game.gameBounds.top - 16, game.gameBounds.right - game.gameBounds.left);
         ctx.restore();
         ctx.textBaseline = "alphabetic";
     }
@@ -1083,11 +1095,11 @@ PauseState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle";
     ctx.textAlign="center";
-    ctx.fillText(T('paused', null, "Paused"), game.width / 2, game.height/2 - 14);
+    neonFill(ctx, T('paused', null, "Paused"), game.width / 2, game.height/2 - 14);
     ctx.font="14px Arial";
     ctx.fillStyle = '#b0b0c0';
     var onTouch = document.body && document.body.classList.contains('touch');
-    ctx.fillText(T(onTouch ? 'paused.hint.touch' : 'paused.hint', null, "Esc or P to continue"), game.width / 2, game.height/2 + 18);
+    neonFill(ctx, T(onTouch ? 'paused.hint.touch' : 'paused.hint', null, "Esc or P to continue"), game.width / 2, game.height/2 + 18);
     ctx.textBaseline="alphabetic";
     return;
 };
@@ -1133,9 +1145,9 @@ LevelIntroState.prototype.draw = function(game, dt, ctx) {
     ctx.fillStyle = '#ffffff';
     ctx.textBaseline="middle"; 
     ctx.textAlign="center"; 
-    ctx.fillText(T('intro.wave', { n: this.level }, "Level " + this.level), game.width / 2, game.height/2);
+    neonFill(ctx, T('intro.wave', { n: this.level }, "Level " + this.level), game.width / 2, game.height/2);
     ctx.font="24px Arial";
-    ctx.fillText(T('intro.ready', { c: this.countdownMessage }, "Ready in " + this.countdownMessage), game.width / 2, game.height/2 + 36);      
+    neonFill(ctx, T('intro.ready', { c: this.countdownMessage }, "Ready in " + this.countdownMessage), game.width / 2, game.height/2 + 36);      
     return;
 };
 
