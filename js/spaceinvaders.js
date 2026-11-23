@@ -373,6 +373,8 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
 
     //  Clear the background.
     ctx.clearRect(0, 0, game.width, game.height);
+    //  The cover art behind the title (img/cover.jpg), dimmed (neon-stage.js).
+    if (window.NeonStage && window.NeonStage.cover) { window.NeonStage.cover(ctx, 0, 0, game.width, game.height, 0.5); }
 
     ctx.font="30px Arial";
     ctx.fillStyle = '#ffffff';
@@ -382,8 +384,8 @@ WelcomeState.prototype.draw = function(game, dt, ctx) {
     var cx = game.width / 2, cy = game.height / 2;
     var nt = window.NeonStage && window.NeonStage.text;
     //  The game's 3D logo (Blender, img/logo.png) when the theme keeps the name; chrome words otherwise or until it loads.
-    var lh = Math.min(140, cy - 50);
-    if (!(nt && texts.title === 'Neon Raiders' && nt.logo(ctx, cx, cy - 40 - lh / 2, lh * 2))) {
+    var lh = Math.min(130, cy - 66);
+    if (!(nt && texts.title === 'Neon Raiders' && nt.logo(ctx, cx, cy - 46 - lh / 2, lh * 2))) {
         if (nt) { nt.chrome(ctx, texts.title, cx, cy - 70, 30, '#ff00c8'); } else { ctx.fillText(texts.title, cx, cy - 70); }
     }
     var daily = window.NeonDaily, i18n = window.NeonI18n;
